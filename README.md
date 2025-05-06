@@ -34,14 +34,14 @@ Movie Booking Management System
 - Database Design and Implementation
   - Create Entity Relationship Diagram
   - Create tables, relationships, and constraints
-	- Develop views, stored procedures, and triggers
+  - Develop views, stored procedures, and triggers
   - Insert mock data for testing
 - Web-based Interface
   - Set up server and database connection
-	- Build CRUD APIs for entities
+  - Build CRUD APIs for entities
   - Add forms, tables, and basic navigation
   - Add statistics dashboards
-	- Add data visualizations (charts/graphs)
+  - Add data visualizations (charts/graphs)
 - Final
   - Optimize queries and indexes for performance
   - Report and Presentation
