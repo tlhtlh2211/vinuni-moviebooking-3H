@@ -5,9 +5,43 @@ Movie Booking Management System
 
 ## Brief Description of your system and the problem it solves
 
+The Movie Booking Management System is designed to support online movie ticket reservations for a cinema with multiple screens. This system addresses the limitations of traditional ticket booking methods by allowing users (customers) to view available movies, showtimes, and select their seats via a web-based interface. Admin users can manage movie listings, schedules, ticket prices, and monitor booking activity through a dashboard.
+
+The project emphasizes designing a relational database that can efficiently store and manage information about cinemas, screens, movies, seats, bookings, and users. It also enables handling of ticket payments and reservation details using mock data.
+
 ## Functional & Non-functional Requirements
 
-## Planned Core Entities
+### Functional Requirements
+
+Customers can:
+
+- Register and log in.
+- Browse currently showing and upcoming movies.
+- View showtimes and seat availability for a specific movie.
+- Make reservations by selecting available seats and confirming booking.
+- View their reservation history.
+
+Admins can:
+
+- Add/update/delete movies, showtimes, and seat fares.
+- View reports on ticket sales and booking statistics.
+
+System functions:
+
+- Calculate total payment per reservation based on seat fare.
+- Track seat availability status in real time.
+- Generate tickets associated with a reservation.
+
+### Non-functional Requirements
+
+- The system will use mock data for user accounts and payments.
+- Security token-based login to access user-specific data via the API.
+- The database should be normalized, efficient, and support fast read/write operations for a small-scale project.
+- The user interface will be in English only.
+- System will be hosted and tested on Heroku (Backend), and Vercell (Frontend)
+
+
+## Planned Core Entities (brief outline)
 - Cinema – multi‑screen complex
 - Screens – individual screen inside a cinema
 - CinemaTypes – 2D, 3D, IMAX, VIP, etc.
@@ -15,33 +49,46 @@ Movie Booking Management System
 - SeatFares – base price for each seat‑class (regular, premium, sofa, …)
 - Movies – title, metadata, state (now‑showing, upcoming)
 - Showtimes – a movie playing in a specific cinema at a start/end time
-- Users
+- Users - login credentials and roles (admin, customer).
 - Reservations – a user’s booking for one showtime (total payment, number of tickets, discounts, payment ref)
 - Tickets – seat‑level records linked to a reservation
 - Payments – charge details and status for a reservation
 
-## Tech Stack
+## Tech Stack (e.g., MySQL, Node.js, PHP, Flask, etc.)
 - MySQL
 - React
 - Django
 
 ## Team Members and Roles
-- Tran Le Hai
-- Vuong Chi Hao
-- Truong Dang Gia Huy
+- Tran Le Hai – Backend Developer, Database Designer
+- Vuong Chi Hao – Frontend Developer, Tester
+- Truong Dang Gia Huy – System Integrator & Tester
 
-## Timeline
-- Database Design and Implementation
-  - Create Entity Relationship Diagram
-  - Create tables, relationships, and constraints
-  - Develop views, stored procedures, and triggers
-  - Insert mock data for testing
-- Web-based Interface
-  - Set up server and database connection
-  - Build CRUD APIs for entities
-  - Add forms, tables, and basic navigation
-  - Add statistics dashboards
-  - Add data visualizations (charts/graphs)
-- Final
-  - Optimize queries and indexes for performance
-  - Report and Presentation
+## Timeline (Planned Milestones)
+
+### Week 1: May 6 – May 12  
+**Focus:** Planning & Early Database Design  
+- Finalize system requirements and core entities  
+- Design the initial **Entity Relationship Diagram (ERD)**  
+- Review and refine ERD with team feedback  
+- Start creating database schema (tables, keys, relationships)  
+- Begin inserting mock data for initial testing  
+
+### Week 2: May 13 – May 19  
+**Focus:** Database Development & API Setup  
+- Complete and polish the ERD for submission by **May 20**  
+- Implement remaining tables and constraints  
+- Develop stored procedures, basic views, and simple triggers  
+- Start backend API (Django) for core CRUD operations (e.g., Movies, Showtimes, Users, Reservations)  
+- Ensure database and backend are connected and working locally  
+
+### Week 3: May 20 – May 27  
+**Focus:** Web Interface & Finalization  
+- Build React frontend: forms for booking, viewing movies/showtimes  
+- Implement admin dashboard: view reservations, ticket stats  
+- Integrate API with frontend for real data flow  
+- Add simple data visualizations (charts for bookings, revenue)  
+- Final testing and bug fixes  
+- Optimize database queries and indexes (where needed)  
+- Prepare and submit final report and project presentation  
+
