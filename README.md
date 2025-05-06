@@ -7,7 +7,7 @@ Movie Booking Management System
 
 ## Functional & Non-functional Requirements
 
-## Planned Core Entities (brief outline)
+## Planned Core Entities
 - Cinema – multi‑screen complex
 - Screens – individual screen inside a cinema
 - CinemaTypes – 2D, 3D, IMAX, VIP, etc.
@@ -20,7 +20,7 @@ Movie Booking Management System
 - Tickets – seat‑level records linked to a reservation
 - Payments – charge details and status for a reservation
 
-## Tech Stack (e.g., MySQL, Node.js, PHP, Flask, etc.)
+## Tech Stack
 - MySQL
 - React
 - Django
@@ -30,7 +30,7 @@ Movie Booking Management System
 - Vuong Chi Hao
 - Truong Dang Gia Huy
 
-## Timeline (planned milestones)
+## Timeline
 - Database Design and Implementation
   - Create Entity Relationship Diagram
   - Create tables, relationships, and constraints
