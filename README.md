@@ -41,7 +41,7 @@ System functions:
 - System will be hosted and tested on Heroku (Backend), and Vercell (Frontend)
 
 
-## Planned Core Entities (brief outline)
+## Planned Core Entities
 - Cinema – multi‑screen complex
 - Screens – individual screen inside a cinema
 - CinemaTypes – 2D, 3D, IMAX, VIP, etc.
@@ -54,7 +54,7 @@ System functions:
 - Tickets – seat‑level records linked to a reservation
 - Payments – charge details and status for a reservation
 
-## Tech Stack (e.g., MySQL, Node.js, PHP, Flask, etc.)
+## Tech Stack
 - MySQL
 - React
 - Django
@@ -64,7 +64,7 @@ System functions:
 - Vuong Chi Hao – Frontend Developer, Tester
 - Truong Dang Gia Huy – System Integrator, Database Designer
 
-## Timeline (Planned Milestones)
+## Timeline
 
 ### Week 1: May 6 – May 12  
 **Focus:** Planning & Early Database Design  
