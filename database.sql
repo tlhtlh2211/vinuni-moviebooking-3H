@@ -157,3 +157,47 @@ CREATE TABLE payments (
         FOREIGN KEY (reservation_id) REFERENCES reservations (reservation_id)
         ON UPDATE CASCADE ON DELETE CASCADE
 )
+
+
+-- Trigger to prevent overlapping showtimes on the same screen
+DELIMITER //
+CREATE TRIGGER trg_showtime_no_overlap 
+BEFORE INSERT ON showtimes 
+FOR EACH ROW 
+BEGIN 
+    IF EXISTS (
+        SELECT 1 
+        FROM showtimes s
+        WHERE s.screen_id = NEW.screen_id 
+        AND NEW.start_time < s.end_time 
+        AND NEW.end_time > s.start_time
+    ) THEN 
+        SIGNAL SQLSTATE '45000' 
+        SET MESSAGE_TEXT='Overlapping showtime'; 
+    END IF; 
+END//
+DELIMITER ;
+
+-- Trigger to prevent reducing screen capacity below current seat count
+DELIMITER //
+CREATE TRIGGER trg_screen_capacity_update
+BEFORE UPDATE ON screens
+FOR EACH ROW
+BEGIN
+    DECLARE seat_count INT;
+    
+    -- Only check if capacity is being reduced
+    IF NEW.capacity < OLD.capacity THEN
+        -- Get the current seat count for this screen
+        SELECT COUNT(*) INTO seat_count
+        FROM seats
+        WHERE screen_id = NEW.screen_id;
+        
+        -- Check if new capacity is less than current seat count
+        IF NEW.capacity < seat_count THEN
+            SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Cannot reduce capacity below current seat count';
+        END IF;
+    END IF;
+END//
+DELIMITER ;
