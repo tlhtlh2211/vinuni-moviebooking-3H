@@ -41,18 +41,18 @@ System functions:
 - System will be hosted and tested on Heroku (Backend), and Vercell (Frontend)
 
 
-## Planned Core Entities
-- Cinema – multi‑screen complex
-- Screens – individual screen inside a cinema
-- CinemaTypes – 2D, 3D, IMAX, VIP, etc.
-- Seats – physical seats, with row/column and status
-- SeatFares – base price for each seat‑class (regular, premium, sofa, …)
-- Movies – title, metadata, state (now‑showing, upcoming)
-- Showtimes – a movie playing in a specific cinema at a start/end time
-- Users - login credentials and roles (admin, customer).
-- Reservations – a user’s booking for one showtime (total payment, number of tickets, discounts, payment ref)
-- Tickets – seat‑level records linked to a reservation
-- Payments – charge details and status for a reservation
+## Core Entities
+- `cinema`: multi‑screen complex
+- `screens`: individual screen inside a cinema
+- `cinema_types`: 2D, 3D, IMAX, VIP, etc.
+- `seats`: physical seats, with row/column and status
+- `seat_prices`: base price for each seat‑class (regular, premium, sofa, …)
+- `movies`: title, metadata, state (now‑showing, upcoming)
+- `showtimes`: a movie playing in a specific cinema at a start/end time
+- `users`: login credentials and roles (admin, customer).
+- `reservations`: a user’s booking for one showtime (total payment, number of tickets, discounts, payment ref)
+- `tickets`: seat‑level records linked to a reservation
+- `payments`: charge details and status for a reservation
 
 ## Tech Stack
 - MySQL
