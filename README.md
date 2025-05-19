@@ -62,7 +62,7 @@ System functions:
 ## Team Members and Roles
 - Tran Le Hai – Backend Developer, Database Designer
 - Vuong Chi Hao – Frontend Developer, Tester
-- Truong Dang Gia Huy – System Integrator & Tester
+- Truong Dang Gia Huy – System Integrator, Database Designer
 
 ## Timeline (Planned Milestones)
 
