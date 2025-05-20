@@ -148,7 +148,10 @@ BEGIN
         SET MESSAGE_TEXT='Overlapping showtime'; 
     END IF; 
 END//
+DELIMITER ;
 
+-- TRIGGER: Prevent overlapping showtimes on the same screen (update)
+DELIMITER //
 CREATE TRIGGER trg_showtime_no_overlap_update 
 BEFORE UPDATE ON showtimes 
 FOR EACH ROW 
@@ -159,7 +162,7 @@ BEGIN
         WHERE s.screen_id = NEW.screen_id 
         AND NEW.start_time < s.end_time 
         AND NEW.end_time > s.start_time
-        AND s.showtime_id != NEW.showtime_id -- ignore the row being updated
+        AND s.showtime_id != NEW.showtime_id
     ) THEN 
         SIGNAL SQLSTATE '45000' 
         SET MESSAGE_TEXT='Overlapping showtime'; 
