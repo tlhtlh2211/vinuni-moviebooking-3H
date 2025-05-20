@@ -279,7 +279,7 @@ BEGIN
      WHERE user_id = p_user_id
        AND showtime_id = p_showtime_id
        AND seat_id IN (SELECT seat_id
-                         FROM JSON_TABLE(p_seat_ids,'$[*]' COLUMNS (seat_id INT PATH '$')));
+                         FROM JSON_TABLE(p_seat_ids,'$[*]' COLUMNS (seat_id INT PATH '$')) AS j);
 
     COMMIT;
 END//
