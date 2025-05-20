@@ -12,7 +12,6 @@ CREATE TABLE screens (
     screen_id INT NOT NULL AUTO_INCREMENT,
     cinema_id INT NOT NULL,
     name VARCHAR(50) NOT NULL,
-    capacity SMALLINT NOT NULL,
     screen_format ENUM('2D', '3D', 'IMAX') NOT NULL DEFAULT '2D',
     PRIMARY KEY (screen_id),
     UNIQUE KEY uk_cinema_screen (cinema_id, name),
@@ -33,7 +32,8 @@ CREATE TABLE seats (
     UNIQUE KEY uk_screen_seat (screen_id, seat_label),
     CONSTRAINT fk_seat_screen
         FOREIGN KEY (screen_id) REFERENCES screens (screen_id)
-        ON UPDATE CASCADE ON DELETE CASCADE
+        ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT chk_seat_positive_coords CHECK (row_num > 0 AND col_num > 0)
 );
 
 -- 4. Movies
@@ -44,7 +44,8 @@ CREATE TABLE movies (
     rating ENUM('G', 'PG', 'PG-13', 'R', 'NC-17') NOT NULL DEFAULT 'G',
     release_date DATE,
     status ENUM('open','closed') NOT NULL DEFAULT 'open',
-    PRIMARY KEY (movie_id)
+    PRIMARY KEY (movie_id),
+    CONSTRAINT chk_movie_positive_duration CHECK (duration > 0)
 );
 
 -- 5. Showtimes
@@ -61,7 +62,8 @@ CREATE TABLE showtimes (
         ON UPDATE CASCADE ON DELETE CASCADE,
     CONSTRAINT fk_showtime_screen
         FOREIGN KEY (screen_id) REFERENCES screens (screen_id)
-        ON UPDATE CASCADE ON DELETE CASCADE
+        ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT chk_showtime_end_after_start CHECK (end_time > start_time)
 );
 
 -- 6. Users
@@ -80,7 +82,6 @@ CREATE TABLE reservations (
     user_id INT NOT NULL,
     showtime_id INT NOT NULL,
     status ENUM('pending','confirmed','cancelled','expired') NOT NULL DEFAULT 'pending',
-    total_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     expires_at DATETIME NOT NULL,
     PRIMARY KEY (reservation_id),
@@ -89,28 +90,25 @@ CREATE TABLE reservations (
         ON UPDATE CASCADE ON DELETE CASCADE,
     CONSTRAINT fk_res_showtime
         FOREIGN KEY (showtime_id) REFERENCES showtimes (showtime_id)
-        ON UPDATE CASCADE ON DELETE CASCADE
+        ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT chk_reservation_expiry_after_creation CHECK (expires_at > created_at)
 );
 
 -- 8. Tickets
 CREATE TABLE tickets (
     ticket_id INT NOT NULL AUTO_INCREMENT,
     reservation_id INT NOT NULL,
-    showtime_id INT NOT NULL,
     seat_id INT NOT NULL,
     price DECIMAL(10,2) NOT NULL,
     issued_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (ticket_id),
-    UNIQUE KEY uk_showtime_seat (showtime_id, seat_id),
     CONSTRAINT fk_ticket_reservation
         FOREIGN KEY (reservation_id) REFERENCES reservations (reservation_id)
         ON UPDATE CASCADE ON DELETE CASCADE,
-    CONSTRAINT fk_ticket_showtime
-        FOREIGN KEY (showtime_id) REFERENCES showtimes (showtime_id)
-        ON UPDATE CASCADE ON DELETE CASCADE,
     CONSTRAINT fk_ticket_seat
         FOREIGN KEY (seat_id) REFERENCES seats (seat_id)
-        ON UPDATE CASCADE ON DELETE CASCADE
+        ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT chk_ticket_positive_price CHECK (price > 0)
 );
 
 -- 9. Seat locks (holds while a user is buying)
@@ -129,7 +127,8 @@ CREATE TABLE seat_locks (
         ON UPDATE CASCADE ON DELETE CASCADE,
     CONSTRAINT fk_lock_user
         FOREIGN KEY (user_id) REFERENCES users (user_id)
-        ON UPDATE CASCADE ON DELETE CASCADE
+        ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT chk_lock_expiry_after_lock CHECK (expires_at > locked_at)
 );
 
 -- TRIGGER: Prevent overlapping showtimes on the same screen
@@ -149,28 +148,22 @@ BEGIN
         SET MESSAGE_TEXT='Overlapping showtime'; 
     END IF; 
 END//
-DELIMITER ;
 
--- TRIGGER: Prevent reducing screen capacity below current seat count
-DELIMITER //
-CREATE TRIGGER trg_screen_capacity_update
-BEFORE UPDATE ON screens
-FOR EACH ROW
-BEGIN
-    DECLARE seat_count INT;
-    
-    IF NEW.capacity < OLD.capacity THEN
-        -- Get the current seat count for this screen
-        SELECT COUNT(*) INTO seat_count
-        FROM seats
-        WHERE screen_id = NEW.screen_id;
-        
-        -- Check if new capacity is less than current seat count
-        IF NEW.capacity < seat_count THEN
-            SIGNAL SQLSTATE '45000'
-            SET MESSAGE_TEXT = 'Cannot reduce capacity below current seat count';
-        END IF;
-    END IF;
+CREATE TRIGGER trg_showtime_no_overlap_update 
+BEFORE UPDATE ON showtimes 
+FOR EACH ROW 
+BEGIN 
+    IF EXISTS (
+        SELECT 1 
+        FROM showtimes s
+        WHERE s.screen_id = NEW.screen_id 
+        AND NEW.start_time < s.end_time 
+        AND NEW.end_time > s.start_time
+        AND s.showtime_id != NEW.showtime_id -- ignore the row being updated
+    ) THEN 
+        SIGNAL SQLSTATE '45000' 
+        SET MESSAGE_TEXT='Overlapping showtime'; 
+    END IF; 
 END//
 DELIMITER ;
 
@@ -181,7 +174,7 @@ DELIMITER //
 CREATE PROCEDURE sp_create_reservation (
     IN p_user_id INT,
     IN p_showtime_id INT,
-    IN p_seat_ids JSON          -- e.g. '[12,15,16]'
+    IN p_seat_ids JSON
 )
 BEGIN
     DECLARE v_reservation_id INT;
@@ -199,11 +192,11 @@ BEGIN
 
     START TRANSACTION;
 
-    /* --------- 1.  Get the screen + format and lock the showtime row */
+    /* --------- 1. Get the screen + format and lock the showtime row */
     SELECT st.screen_id, sc.screen_format
       INTO v_screen_id, v_format
       FROM showtimes st
-      JOIN screens   sc ON sc.screen_id = st.screen_id
+      JOIN screens sc ON sc.screen_id = st.screen_id
      WHERE st.showtime_id = p_showtime_id
      FOR UPDATE;
 
@@ -212,7 +205,7 @@ BEGIN
           SET MESSAGE_TEXT = 'Showtime not found';
     END IF;
 
-    /* --------- 2.  Validate the seat set */
+    /* --------- 2. Validate the seat set */
 
     /* 2a – all seats belong to that screen */
     SELECT COUNT(*) INTO v_cnt
@@ -222,15 +215,16 @@ BEGIN
      WHERE s.screen_id <> v_screen_id;
     IF v_cnt > 0 THEN
         SIGNAL SQLSTATE '45000'
-          SET MESSAGE_TEXT = 'One or more seats do not belong to the showtime’s screen';
+          SET MESSAGE_TEXT = 'One or more seats do not belong to the showtime screen';
     END IF;
 
     /* 2b – none already sold */
     SELECT COUNT(*) INTO v_cnt
       FROM tickets t
+      JOIN reservations r ON r.reservation_id = t.reservation_id
       JOIN JSON_TABLE(p_seat_ids, '$[*]' COLUMNS (seat_id INT PATH '$')) j
         ON j.seat_id = t.seat_id
-     WHERE t.showtime_id = p_showtime_id;
+     WHERE r.showtime_id = p_showtime_id;
     IF v_cnt > 0 THEN
         SIGNAL SQLSTATE '45000'
           SET MESSAGE_TEXT = 'One or more seats already sold';
@@ -249,18 +243,17 @@ BEGIN
           SET MESSAGE_TEXT = 'Seat currently locked by another user';
     END IF;
 
-    /* --------- 3.  Insert the reservation (15-minute expiry) */
+    /* --------- 3. Insert the reservation (15-minute expiry) */
     INSERT INTO reservations
-          (user_id, showtime_id, status, total_amount, created_at, expires_at)
-    VALUES (p_user_id, p_showtime_id, 'pending', 0.00, v_now,
+          (user_id, showtime_id, status, created_at, expires_at)
+    VALUES (p_user_id, p_showtime_id, 'pending', v_now,
             DATE_ADD(v_now, INTERVAL 15 MINUTE));
 
     SET v_reservation_id = LAST_INSERT_ID();
 
-    /* --------- 4.  Insert tickets and calculate price inline */
-    INSERT INTO tickets (reservation_id, showtime_id, seat_id, price)
+    /* --------- 4. Insert tickets and calculate price inline */
+    INSERT INTO tickets (reservation_id, seat_id, price)
     SELECT v_reservation_id,
-           p_showtime_id,
            s.seat_id,
            /* base price by seat-class … */
            (CASE s.seat_class
@@ -271,25 +264,23 @@ BEGIN
            (CASE v_format
                 WHEN '2D' THEN 1.00
                 WHEN '3D' THEN 1.25
-                WHEN 'IMAX' THEN 1.50 END)  AS price
+                WHEN 'IMAX' THEN 1.50 END) AS price
       FROM seats s
       JOIN JSON_TABLE(p_seat_ids, '$[*]' COLUMNS (seat_id INT PATH '$')) j
         ON j.seat_id = s.seat_id;
 
-    /* --------- 5.  Update reservation total & set to confirmed */
+    /* --------- 5. Update reservation total & set to confirmed */
     UPDATE reservations
-       SET total_amount = (SELECT SUM(price)
-                             FROM tickets
-                            WHERE reservation_id = v_reservation_id),
-           status = 'confirmed'
+       SET status = 'confirmed'
      WHERE reservation_id = v_reservation_id;
 
-    /* --------- 6.  Remove the (now-used) locks of this user */
+    /* --------- 6. Remove the (now-used) locks of this user */
     DELETE FROM seat_locks
-     WHERE user_id     = p_user_id
+     WHERE user_id = p_user_id
        AND showtime_id = p_showtime_id
        AND seat_id IN (SELECT seat_id
                          FROM JSON_TABLE(p_seat_ids,'$[*]' COLUMNS (seat_id INT PATH '$')));
+
     COMMIT;
 END//
 DELIMITER ;
@@ -303,6 +294,8 @@ CREATE PROCEDURE sp_cancel_reservation (
 )
 BEGIN
     DECLARE v_exists BOOL DEFAULT FALSE;
+    DECLARE v_user_id INT;
+    DECLARE v_showtime_id INT;
 
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
@@ -313,18 +306,18 @@ BEGIN
     START TRANSACTION;
 
     /* lock the row we intend to change */
-    SELECT 1 INTO v_exists
+    SELECT user_id, showtime_id INTO v_user_id, v_showtime_id
       FROM reservations
      WHERE reservation_id = p_reservation_id
        AND status IN ('pending','confirmed')
      FOR UPDATE;
 
-    IF v_exists IS NULL THEN
+    IF v_user_id IS NULL THEN
         SIGNAL SQLSTATE '45000'
           SET MESSAGE_TEXT = 'Reservation not found or already finalised';
     END IF;
 
-    /* 1. flip status */
+    /* 1. flip status and reset total amount */
     UPDATE reservations
        SET status = 'cancelled'
      WHERE reservation_id = p_reservation_id;
@@ -333,14 +326,19 @@ BEGIN
     DELETE FROM tickets
      WHERE reservation_id = p_reservation_id;
 
+    /* 3. remove any seat locks for this user and showtime */
+    DELETE FROM seat_locks
+     WHERE user_id = v_user_id
+       AND showtime_id = v_showtime_id;
+
     COMMIT;
-END$$
+END//
 DELIMITER ;
 
 
 -- VIEW: Available seats
-CREATE VIEW v_available_seats AS
-SELECT
+CREATE OR REPLACE VIEW v_available_seats AS
+SELECT DISTINCT
     sh.showtime_id,
     s.seat_id,
     s.seat_label,
@@ -348,20 +346,36 @@ SELECT
     s.row_num,
     s.col_num,
     s.screen_id
-FROM showtimes sh
-JOIN seats s ON s.screen_id = sh.screen_id
+FROM showtimes AS sh
+JOIN seats AS s ON s.screen_id = sh.screen_id
 
 /* seats already sold */
-LEFT JOIN tickets t
-    ON  t.showtime_id = sh.showtime_id
-    AND t.seat_id     = s.seat_id
+LEFT JOIN tickets AS t
+       JOIN reservations AS r ON r.reservation_id = t.reservation_id
+       ON r.showtime_id = sh.showtime_id
+       AND t.seat_id = s.seat_id
 
 /* seats currently locked by **any** user and not yet expired */
-LEFT JOIN seat_locks l
-    ON  l.showtime_id = sh.showtime_id
-    AND l.seat_id     = s.seat_id
-    AND l.expires_at  > NOW()
+LEFT JOIN seat_locks AS l
+       ON l.showtime_id = sh.showtime_id
+       AND l.seat_id = s.seat_id
+       AND l.expires_at > NOW()
 
 WHERE
-    t.ticket_id IS NULL   -- not sold
-AND l.seat_id   IS NULL;  -- not locked
+      t.ticket_id IS NULL -- not sold
+  AND l.seat_id IS NULL; -- not locked
+
+-- VIEW: Reservation totals
+CREATE OR REPLACE VIEW v_reservation_totals AS
+SELECT 
+    r.reservation_id,
+    r.user_id,
+    r.showtime_id,
+    r.status,
+    COALESCE(SUM(t.price), 0.00) AS total_amount
+FROM 
+    reservations r
+LEFT JOIN 
+    tickets t ON r.reservation_id = t.reservation_id
+GROUP BY 
+    r.reservation_id, r.user_id, r.showtime_id, r.status;
