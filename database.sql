@@ -179,16 +179,16 @@ DELIMITER ;
 DELIMITER //
 
 CREATE PROCEDURE sp_create_reservation (
-    IN  p_user_id      INT,
-    IN  p_showtime_id  INT,
-    IN  p_seat_ids     JSON          -- e.g. '[12,15,16]'
+    IN p_user_id INT,
+    IN p_showtime_id INT,
+    IN p_seat_ids JSON          -- e.g. '[12,15,16]'
 )
 BEGIN
-    DECLARE v_reservation_id  INT;
-    DECLARE v_screen_id       INT;
-    DECLARE v_format          ENUM('2D','3D','IMAX');
-    DECLARE v_now             DATETIME DEFAULT NOW();
-    DECLARE v_cnt             INT;
+    DECLARE v_reservation_id INT;
+    DECLARE v_screen_id INT;
+    DECLARE v_format ENUM('2D','3D','IMAX');
+    DECLARE v_now DATETIME DEFAULT NOW();
+    DECLARE v_cnt INT;
 
     /* roll back on any error */
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
@@ -264,14 +264,13 @@ BEGIN
            s.seat_id,
            /* base price by seat-class … */
            (CASE s.seat_class
-                WHEN 'standard'  THEN  8.00
-                WHEN 'sweet box' THEN 12.00
-                WHEN 'premium'   THEN 16.00 END)
+                WHEN 'standard' THEN 8.00
+                WHEN 'premium' THEN 16.00 END)
            *
            /* … times multiplier by screen format */
            (CASE v_format
-                WHEN '2D'   THEN 1.00
-                WHEN '3D'   THEN 1.25
+                WHEN '2D' THEN 1.00
+                WHEN '3D' THEN 1.25
                 WHEN 'IMAX' THEN 1.50 END)  AS price
       FROM seats s
       JOIN JSON_TABLE(p_seat_ids, '$[*]' COLUMNS (seat_id INT PATH '$')) j
@@ -282,7 +281,7 @@ BEGIN
        SET total_amount = (SELECT SUM(price)
                              FROM tickets
                             WHERE reservation_id = v_reservation_id),
-           status        = 'confirmed'
+           status = 'confirmed'
      WHERE reservation_id = v_reservation_id;
 
     /* --------- 6.  Remove the (now-used) locks of this user */
@@ -291,7 +290,6 @@ BEGIN
        AND showtime_id = p_showtime_id
        AND seat_id IN (SELECT seat_id
                          FROM JSON_TABLE(p_seat_ids,'$[*]' COLUMNS (seat_id INT PATH '$')));
-
     COMMIT;
 END//
 DELIMITER ;
@@ -338,3 +336,32 @@ BEGIN
     COMMIT;
 END$$
 DELIMITER ;
+
+
+-- VIEW: Available seats
+CREATE VIEW v_available_seats AS
+SELECT
+    sh.showtime_id,
+    s.seat_id,
+    s.seat_label,
+    s.seat_class,
+    s.row_num,
+    s.col_num,
+    s.screen_id
+FROM showtimes sh
+JOIN seats s ON s.screen_id = sh.screen_id
+
+/* seats already sold */
+LEFT JOIN tickets t
+    ON  t.showtime_id = sh.showtime_id
+    AND t.seat_id     = s.seat_id
+
+/* seats currently locked by **any** user and not yet expired */
+LEFT JOIN seat_locks l
+    ON  l.showtime_id = sh.showtime_id
+    AND l.seat_id     = s.seat_id
+    AND l.expires_at  > NOW()
+
+WHERE
+    t.ticket_id IS NULL   -- not sold
+AND l.seat_id   IS NULL;  -- not locked
