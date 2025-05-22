@@ -198,6 +198,15 @@ export default function Home() {
                       >
                         <Link href={`/movies/${movie.movie_id}`}>
                           <div className="w-full h-full flex items-center justify-center font-mono font-bold">
+                            {movie.poster_url ? (
+                              <img 
+                                src={movie.poster_url} 
+                                alt={movie.title}
+                                className="w-full h-full object-cover absolute inset-0"
+                              />
+                            ) : (
+                              <span className="z-10">MOVIE {movie.movie_id}</span>
+                            )}
                             <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black opacity-70"></div>
                             <div className="absolute bottom-0 left-0 right-0 p-2">
                               <p className="font-mono font-bold text-white text-sm">{movie.title}</p>
@@ -212,7 +221,6 @@ export default function Home() {
                                 </div>
                               </div>
                             </div>
-                            <span className="z-10">MOVIE {movie.movie_id}</span>
                           </div>
                         </Link>
                       </motion.div>
@@ -251,9 +259,16 @@ export default function Home() {
                 className="bg-white border-8 border-black group"
               >
                 <div className="aspect-video bg-gray-200 border-b-8 border-black relative overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent opacity-0 group-hover:opacity-70 transition-opacity"></div>
-                  <div className="w-full h-full flex items-center justify-center font-mono font-bold">
-                    {movie.title}
+                  {movie.poster_url ? (
+                    <img 
+                      src={movie.poster_url} 
+                      alt={movie.title}
+                      className="w-full h-full object-cover absolute inset-0"
+                    />
+                  ) : null}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent opacity-50 group-hover:opacity-70 transition-opacity"></div>
+                  <div className="w-full h-full flex items-center justify-center font-mono font-bold text-white z-10 relative">
+                    {!movie.poster_url && movie.title}
                   </div>
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}

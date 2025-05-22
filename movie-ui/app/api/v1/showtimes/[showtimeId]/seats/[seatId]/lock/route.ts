@@ -1,39 +1,67 @@
-import { type NextRequest, NextResponse } from "next/server"
-import axios from "axios"
+import { NextResponse } from 'next/server';
+import axios from 'axios';
 
-// Base URL for your Flask API
-const FLASK_API_BASE_URL = "http://127.0.0.1:5000/api/v1/showtimes"
+// Function to log to the console and also return with data
+function logAndReturn(message: string, data: any, status: number = 200) {
+  console.log(`[API DEBUG] ${message}`, data);
+  return NextResponse.json(data, { status });
+}
 
-export async function POST(request: NextRequest, { params }: { params: { showtimeId: string; seatId: string } }) {
+// API Handler for POST /api/v1/showtimes/:showtimeId/seats/:seatId/lock
+export async function POST(
+  request: Request,
+  context: { params: { showtimeId: string, seatId: string } }
+) {
+  // Await params before using them
+  const { showtimeId, seatId } = await context.params;
+  
+  console.log(`[API Route] POST /api/v1/showtimes/${showtimeId}/seats/${seatId}/lock`);
+  console.log('Route params:', context.params);
+  
   try {
-    const showtimeId = Number.parseInt(params.showtimeId)
-    const seatId = Number.parseInt(params.seatId)
-    const body = await request.json()
-    const { user_id } = body
-
-    // Validate input
+    const body = await request.json();
+    const { user_id } = body;
+    
     if (!user_id) {
-      return NextResponse.json({ error: "User ID is required" }, { status: 400 })
+      return logAndReturn(
+        'Missing user ID',
+        { error: 'User ID is required' },
+        400
+      );
     }
-
-    // Send a request to the Flask API to lock a seat
-    const response = await axios.post(`${FLASK_API_BASE_URL}/${showtimeId}/seats/${seatId}/lock`, { user_id })
-
-    // Check if the response is successful
+    
+    console.log(`Locking seat ${seatId} for user ${user_id}`);
+    
+    const apiUrl = `http://127.0.0.1:5000/api/v1/showtimes/${showtimeId}/seats/${seatId}/lock`;
+    console.log(`Fetching from Flask API: ${apiUrl}`);
+    
+    // Forward the request to the Flask backend
+    const response = await axios.post(apiUrl, { user_id });
+    
     if (response.status === 200) {
-      const { data } = response
-      return NextResponse.json(data)
+      const data = response.data;
+      return logAndReturn('Successfully locked seat', data);
     } else {
-      return NextResponse.json({ error: "Failed to lock seat" }, { status: response.status })
+      return logAndReturn(
+        'Failed to lock seat',
+        { error: 'Failed to lock seat', status: response.status },
+        response.status
+      );
     }
   } catch (error: any) {
-    console.error("Error locking seat:", error)
+    console.error('[API ERROR] Error locking seat:', error.message);
     if (error.response) {
-      return NextResponse.json(
-        { error: error.response.data.message || "Failed to lock seat" },
-        { status: error.response.status },
-      )
+      console.error('Server response:', error.response.data);
+      return logAndReturn(
+        'Error from backend',
+        { error: error.response?.data?.error || 'Internal server error', details: error.message },
+        error.response?.status || 500
+      );
     }
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return logAndReturn(
+      'Internal server error',
+      { error: 'Internal server error', details: String(error) },
+      500
+    );
   }
 }
