@@ -60,7 +60,7 @@ class Screen(db.Model):
     screen_id = db.Column(db.Integer, primary_key=True)
     cinema_id = db.Column(db.Integer, db.ForeignKey('cinemas.cinema_id'), nullable=False)
     name = db.Column(db.String(50), nullable=False)
-    screen_format = db.Column(db.Enum('standard', 'imax', '3d', '4dx'), nullable=False, default='standard')
+    screen_format = db.Column(db.Enum('2D', '3D', 'IMAX'), nullable=False, default='2D')
     
     seats = db.relationship('Seat', backref='screen', lazy=True)
     showtimes = db.relationship('Showtime', backref='screen', lazy=True)
@@ -77,7 +77,7 @@ class Seat(db.Model):
     __tablename__ = 'seats'
     seat_id = db.Column(db.Integer, primary_key=True)
     screen_id = db.Column(db.Integer, db.ForeignKey('screens.screen_id'), nullable=False)
-    seat_class = db.Column(db.Enum('standard', 'premium', 'vip'), nullable=False, default='standard')
+    seat_class = db.Column(db.Enum('standard', 'premium'), nullable=False, default='standard')
     seat_label = db.Column(db.String(10), nullable=False)
     row_num = db.Column(db.SmallInteger, nullable=False)
     col_num = db.Column(db.SmallInteger, nullable=False)

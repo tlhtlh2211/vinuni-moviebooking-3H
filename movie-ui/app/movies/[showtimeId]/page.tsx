@@ -192,7 +192,7 @@ export default function MovieDetailsPage({ params }: { params: { showtimeId: str
               mockSeats.push({
                 seat_id: seatId,
                 screen_id: 1,
-                seat_class: col < 2 ? SeatClass.STANDARD : col < 6 ? SeatClass.PREMIUM : SeatClass.VIP,
+                seat_class: col < 2 ? SeatClass.STANDARD : SeatClass.PREMIUM,
                 seat_label: `${String.fromCharCode(65 + row)}${col + 1}`,
                 row_num: row,
                 col_num: col,
@@ -216,7 +216,7 @@ export default function MovieDetailsPage({ params }: { params: { showtimeId: str
             mockSeats.push({
               seat_id: seatId,
               screen_id: 1,
-              seat_class: col < 2 ? SeatClass.STANDARD : col < 6 ? SeatClass.PREMIUM : SeatClass.VIP,
+              seat_class: col < 2 ? SeatClass.STANDARD : SeatClass.PREMIUM,
               seat_label: `${String.fromCharCode(65 + row)}${col + 1}`,
               row_num: row,
               col_num: col,
@@ -349,8 +349,7 @@ export default function MovieDetailsPage({ params }: { params: { showtimeId: str
           },
           tickets: data.tickets || selectedSeats.map(seatId => {
             const seat = seats.find(s => s.seat_id === seatId);
-            const price = seat?.seat_class === SeatClass.PREMIUM ? 15 : 
-                       seat?.seat_class === SeatClass.VIP ? 20 : 12;
+            const price = seat?.seat_class === SeatClass.PREMIUM ? 15 : 12;
             return {
               ticket_id: "T-" + seatId,
               seat_id: seatId,
@@ -668,9 +667,7 @@ export default function MovieDetailsPage({ params }: { params: { showtimeId: str
                               ? "bg-green-500 border-black cursor-pointer"
                               : seat.seat_class === SeatClass.PREMIUM
                                 ? "bg-yellow-200 border-black cursor-pointer hover:bg-yellow-100"
-                                : seat.seat_class === SeatClass.VIP
-                                  ? "bg-purple-200 border-black cursor-pointer hover:bg-purple-100"
-                                  : "bg-white border-black cursor-pointer hover:bg-gray-100"
+                                : "bg-white border-black cursor-pointer hover:bg-gray-100"
                       }`}
                     >
                       <span className="font-mono font-bold">
@@ -689,10 +686,7 @@ export default function MovieDetailsPage({ params }: { params: { showtimeId: str
                     <div className="w-6 h-6 bg-yellow-200 border-2 border-black"></div>
                     <span className="font-mono">Premium</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 bg-purple-200 border-2 border-black"></div>
-                    <span className="font-mono">VIP</span>
-                  </div>
+
                   <div className="flex items-center gap-2">
                     <div className="w-6 h-6 bg-green-500 border-2 border-black"></div>
                     <span className="font-mono">Selected</span>
@@ -722,7 +716,7 @@ export default function MovieDetailsPage({ params }: { params: { showtimeId: str
                         .reduce((total, seatId) => {
                           const seat = seats.find((s) => s.seat_id === seatId)
                           // Price based on seat class
-                          const price = seat?.seat_class === SeatClass.PREMIUM ? 15 : seat?.seat_class === SeatClass.VIP ? 20 : 12
+                          const price = seat?.seat_class === SeatClass.PREMIUM ? 15 : 12
                           return total + (price || 0)
                         }, 0)
                         .toFixed(2)}

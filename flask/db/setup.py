@@ -166,6 +166,11 @@ def create_tables(cursor, connection):
         rating ENUM('G', 'PG', 'PG-13', 'R', 'NC-17') NOT NULL DEFAULT 'G',
         release_date DATE,
         status ENUM('open','closed') NOT NULL DEFAULT 'open',
+        description TEXT,
+        director VARCHAR(100),
+        cast TEXT,
+        genre VARCHAR(50),
+        poster_url VARCHAR(255),
         PRIMARY KEY (movie_id),
         CONSTRAINT chk_movie_positive_duration CHECK (duration > 0)
     )
@@ -356,12 +361,12 @@ def insert_sample_data(connection, cursor):
         
         # Insert sample movies
         cursor.execute("""
-        INSERT INTO movies (title, duration, rating, release_date, status) VALUES 
-        ('The Avengers', 143, 'PG-13', '2012-05-04', 'open'),
-        ('Inception', 148, 'PG-13', '2010-07-16', 'open'),
-        ('The Dark Knight', 152, 'PG-13', '2008-07-18', 'open'),
-        ('Parasite', 132, 'R', '2019-05-30', 'open'),
-        ('Toy Story 4', 100, 'G', '2019-06-21', 'open')
+        INSERT INTO movies (title, duration, rating, release_date, status, description, director, cast, genre, poster_url) VALUES 
+        ('The Avengers', 143, 'PG-13', '2012-05-04', 'open', 'Earth\'s mightiest heroes must come together and learn to fight as a team.', 'Joss Whedon', 'Robert Downey Jr., Chris Evans, Mark Ruffalo, Chris Hemsworth', 'Action'),
+        ('Inception', 148, 'PG-13', '2010-07-16', 'open', 'A thief who steals corporate secrets through dream-sharing technology.', 'Christopher Nolan', 'Leonardo DiCaprio, Marion Cotillard, Tom Hardy', 'Sci-Fi'),
+        ('The Dark Knight', 152, 'PG-13', '2008-07-18', 'open', 'When the menace known as the Joker wreaks havoc on Gotham.', 'Christopher Nolan', 'Christian Bale, Heath Ledger, Aaron Eckhart', 'Action'),
+        ('Parasite', 132, 'R', '2019-05-30', 'open', 'A poor family schemes to become employed by a wealthy family.', 'Bong Joon-ho', 'Song Kang-ho, Lee Sun-kyun, Cho Yeo-jeong', 'Thriller'),
+        ('Toy Story 4', 100, 'G', '2019-06-21', 'open', 'Woody and the gang welcome a new toy called Forky.', 'Josh Cooley', 'Tom Hanks, Tim Allen, Annie Potts', 'Animation')
         """)
         connection.commit()
         
