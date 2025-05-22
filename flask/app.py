@@ -31,7 +31,7 @@ def create_app():
     from api.v1.movies.route import movies_bp
     app.register_blueprint(movies_bp, url_prefix='/api/v1/movies')
     
-    from api.v1.showtimes.id.seats.route import seats_bp
+    from api.v1.showtimes.showtimeId.seats.route import seats_bp
     app.register_blueprint(seats_bp, url_prefix='/api/v1/showtimes')
     
     from api.v1.reservations.route import reservations_bp
