@@ -74,8 +74,6 @@ class DatabaseSetup:
     
     def _create_database(self):
         """Create the database if it doesn't exist."""
-        print(f"🔍 Connecting to MySQL server at {self.config['host']}:{self.config['port']}")
-        
         try:
             # Connect without specifying database
             connection = mysql.connector.connect(**self.admin_config)
@@ -83,7 +81,7 @@ class DatabaseSetup:
             
             # Create database if not exists
             cursor.execute(f"CREATE DATABASE IF NOT EXISTS `{self.db_name}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci")
-            print(f"Database '{self.db_name}' created or already exists")
+            print(f"Database '{self.db_name}' ready")
             
             cursor.close()
             connection.close()
@@ -94,8 +92,6 @@ class DatabaseSetup:
     
     def _drop_existing_objects(self, cursor):
         """Drop existing database objects in correct order."""
-        print("🧹 Cleaning existing database objects...")
-        
         try:
             # Disable foreign key checks for clean drop
             cursor.execute("SET FOREIGN_KEY_CHECKS = 0")
@@ -125,8 +121,6 @@ class DatabaseSetup:
             # Re-enable foreign key checks
             cursor.execute("SET FOREIGN_KEY_CHECKS = 1")
             
-            print("Existing database objects cleaned")
-            
         except mysql.connector.Error as err:
             print(f"Warning during cleanup: {err}")
             # Continue anyway - this is just cleanup
@@ -134,7 +128,6 @@ class DatabaseSetup:
     def _execute_schema(self, cursor):
         """Execute the schema.sql file."""
         schema_path = self._get_schema_path()
-        print(f"📄 Reading schema from: {schema_path}")
         
         try:
             with open(schema_path, 'r', encoding='utf-8') as file:
@@ -143,18 +136,14 @@ class DatabaseSetup:
             # Split statements by semicolon, handling DELIMITER changes
             statements = self._parse_sql_statements(schema_content)
             
-            print(f"🔧 Executing {len(statements)} SQL statements...")
-            
             for i, statement in enumerate(statements, 1):
                 statement = statement.strip()
                 if statement and not statement.startswith('--'):
                     try:
                         cursor.execute(statement)
-                        if i % 10 == 0:  # Progress indicator
-                            print(f"   📋 Executed {i}/{len(statements)} statements")
                     except mysql.connector.Error as err:
                         print(f"Error in statement {i}: {err}")
-                        print(f"   Statement: {statement[:100]}...")
+                        print(f"Statement: {statement[:100]}...")
                         raise
             
             print("Schema executed successfully")
@@ -208,15 +197,13 @@ class DatabaseSetup:
     
     def setup(self):
         """Execute complete database schema setup."""
-        print("🚀 Starting Database Schema Setup (DDL-First Approach)")
-        print("=" * 60)
+        print("Starting database schema setup...")
         
         try:
             # Step 1: Create database
             self._create_database()
             
             # Step 2: Connect to the specific database
-            print(f"🔗 Connecting to database '{self.db_name}'...")
             connection = mysql.connector.connect(**self.config)
             connection.autocommit = False  # Use transactions
             cursor = connection.cursor()
@@ -229,35 +216,21 @@ class DatabaseSetup:
             
             # Step 5: Commit all changes
             connection.commit()
-            print("All changes committed successfully")
             
             # Cleanup
             cursor.close()
             connection.close()
             
-            # Success message with next steps
-            print("\n" + "=" * 60)
-            print("DATABASE SCHEMA SETUP COMPLETED SUCCESSFULLY!")
-            print("=" * 60)
-            print(f"Database: {self.db_name}")
-            print(f"Host: {self.config['host']}:{self.config['port']}")
-            print(f"User: {self.config['user']}")
-            print("\nNEXT STEPS:")
-            print("1. Add sample data: python seed_data.py")
-            print("2. Run tests: python -m pytest tests/")
-            print("3. Generate models: sqlacodegen mysql+pymysql://user:pass@host/db > ../models.py")
-            print("4. Start application: python ../app.py")
-            print("\nSchema setup is complete - ready for development!")
+            # Success message
+            print("Database schema setup completed successfully!")
+            print(f"Database: {self.db_name} at {self.config['host']}:{self.config['port']}")
+            print("Next: Run 'python seed_data.py' to add sample data")
             
             return True
             
         except Exception as err:
-            print(f"\nSETUP FAILED: {err}")
-            print("\nTROUBLESHOOTING:")
-            print("1. Check MySQL server is running")
-            print("2. Verify database credentials in config.py")
-            print("3. Ensure schema.sql exists and is valid")
-            print("4. Check file permissions")
+            print(f"Setup failed: {err}")
+            print("Check MySQL server, credentials, and schema.sql file")
             return False
 
 
@@ -272,10 +245,10 @@ def main():
         sys.exit(0 if success else 1)
         
     except KeyboardInterrupt:
-        print("\n⏹️  Setup interrupted by user")
+        print("Setup interrupted by user")
         sys.exit(1)
     except Exception as err:
-        print(f"\n💥 Unexpected error: {err}")
+        print(f"Unexpected error: {err}")
         sys.exit(1)
 
 

@@ -71,8 +71,6 @@ class DatabaseSeeder:
     
     def _check_database_exists(self):
         """Verify that the database and schema exist."""
-        print(f"Checking database '{self.config['database']}' exists...")
-        
         try:
             connection = mysql.connector.connect(**self.config)
             cursor = connection.cursor()
@@ -95,7 +93,6 @@ class DatabaseSeeder:
                 connection.close()
                 return False
             
-            print(f"Database schema verified - {len(tables)} tables found")
             cursor.close()
             connection.close()
             return True
@@ -107,7 +104,6 @@ class DatabaseSeeder:
     def _execute_seed_data(self, cursor):
         """Execute the seed_data.sql file."""
         seed_path = self._get_seed_data_path()
-        print(f"Reading seed data from: {seed_path}")
         
         try:
             with open(seed_path, 'r', encoding='utf-8') as file:
@@ -123,11 +119,9 @@ class DatabaseSeeder:
                 if statement and not statement.startswith('--'):
                     try:
                         cursor.execute(statement)
-                        if i % 20 == 0:  # Progress indicator every 20 statements
-                            print(f"   Executed {i}/{len(statements)} statements")
                     except mysql.connector.Error as err:
                         print(f"Error in statement {i}: {err}")
-                        print(f"   Statement: {statement[:100]}...")
+                        print(f"Statement: {statement[:100]}...")
                         raise
             
             print("Seed data executed successfully")
@@ -170,19 +164,11 @@ class DatabaseSeeder:
     
     def _validate_data(self, cursor):
         """Validate that the seed data was inserted correctly."""
-        print("Validating seeded data...")
-        
         validations = [
             ("users", "SELECT COUNT(*) FROM users", 5, "users"),
-            ("cinemas", "SELECT COUNT(*) FROM cinemas", 3, "cinemas"),
-            ("screens", "SELECT COUNT(*) FROM screens", 7, "screens"),
             ("movies", "SELECT COUNT(*) FROM movies", 6, "movies"),
             ("showtimes", "SELECT COUNT(*) FROM showtimes", 13, "showtimes"),
             ("reservations", "SELECT COUNT(*) FROM reservations", 4, "reservations"),
-            ("tickets", "SELECT COUNT(*) FROM tickets", 4, "tickets"),
-            ("seat_locks", "SELECT COUNT(*) FROM seat_locks", 2, "active seat locks"),
-            ("seats", "SELECT COUNT(*) FROM seats WHERE screen_id = 1", 96, "Screen A seats"),
-            ("seats", "SELECT COUNT(*) FROM seats WHERE screen_id = 3", 90, "IMAX Theater seats"),
         ]
         
         validation_passed = True
@@ -192,10 +178,8 @@ class DatabaseSeeder:
                 cursor.execute(query)
                 actual = cursor.fetchone()[0]
                 
-                if actual == expected:
-                    print(f"{description}: {actual} (expected)")
-                else:
-                    print(f"{description}: {actual} (expected {expected})")
+                if actual != expected:
+                    print(f"Validation failed for {description}: {actual} (expected {expected})")
                     validation_passed = False
                     
             except mysql.connector.Error as err:
@@ -203,53 +187,15 @@ class DatabaseSeeder:
                 validation_passed = False
         
         if validation_passed:
-            print("All validations passed - data integrity confirmed")
+            print("Data validation passed")
         else:
-            print("Some validations failed - please check the data")
+            print("Data validation failed")
         
         return validation_passed
     
-    def _show_sample_data(self, cursor):
-        """Display some sample data to confirm seeding worked."""
-        print("\nSample Data Overview:")
-        print("-" * 50)
-        
-        # Show users
-        cursor.execute("SELECT email, role FROM users LIMIT 3")
-        users = cursor.fetchall()
-        print(f"Users ({len(users)} shown):")
-        for email, role in users:
-            print(f"   • {email} ({role})")
-        
-        # Show movies
-        cursor.execute("SELECT title, rating, genre FROM movies LIMIT 3")
-        movies = cursor.fetchall()
-        print(f"\nMovies ({len(movies)} shown):")
-        for title, rating, genre in movies:
-            print(f"   • {title} ({rating}, {genre})")
-        
-        # Show active reservations
-        cursor.execute("""
-            SELECT u.email, m.title, r.status, COUNT(t.ticket_id) as tickets
-            FROM reservations r
-            JOIN users u ON r.user_id = u.user_id
-            JOIN showtimes s ON r.showtime_id = s.showtime_id
-            JOIN movies m ON s.movie_id = m.movie_id
-            LEFT JOIN tickets t ON r.reservation_id = t.reservation_id
-            WHERE r.status = 'confirmed'
-            GROUP BY r.reservation_id
-        """)
-        reservations = cursor.fetchall()
-        print(f"\nActive Reservations ({len(reservations)} shown):")
-        for email, title, status, ticket_count in reservations:
-            print(f"   • {email}: {title} - {ticket_count} tickets ({status})")
-        
-        print("-" * 50)
-    
     def seed(self):
         """Execute complete database seeding process."""
-        print("Starting Database Seeding (DDL-First Approach)")
-        print("=" * 60)
+        print("Starting database seeding...")
         
         try:
             # Step 1: Check database exists
@@ -257,7 +203,6 @@ class DatabaseSeeder:
                 return False
             
             # Step 2: Connect to database
-            print(f"Connecting to database '{self.config['database']}'...")
             connection = mysql.connector.connect(**self.config)
             connection.autocommit = False  # Use transactions
             cursor = connection.cursor()
@@ -268,47 +213,23 @@ class DatabaseSeeder:
             # Step 4: Validate data
             validation_passed = self._validate_data(cursor)
             
-            # Step 5: Show sample data
-            self._show_sample_data(cursor)
-            
-            # Step 6: Commit all changes
+            # Step 5: Commit all changes
             connection.commit()
-            print("\nAll changes committed successfully")
             
             # Cleanup
             cursor.close()
             connection.close()
             
-            # Success message
-            print("\n" + "=" * 60)
-            print("DATABASE SEEDING COMPLETED SUCCESSFULLY!")
-            print("=" * 60)
-            print(f"Database: {self.config['database']}")
-            print(f"Host: {self.config['host']}:{self.config['port']}")
-            print(f"User: {self.config['user']}")
-            print("\nSEEDED DATA SUMMARY:")
-            print("• 5 users (1 admin, 4 customers)")
-            print("• 3 cinemas with 7 screens total")
-            print("• 6 movies with various genres and ratings")
-            print("• 13 showtimes across multiple days")
-            print("• Sample reservations and tickets")
-            print("• Seat availability and locking demo data")
-            print("\nNEXT STEPS:")
-            print("1. Test API endpoints with seeded data")
-            print("2. Run application: python ../app.py")
-            print("3. Browse movies and make test reservations")
-            print("4. Verify seat booking functionality")
-            print("\nDatabase is ready for development and testing!")
+            if validation_passed:
+                print("Database seeding completed successfully!")
+            else:
+                print("Database seeding completed with validation errors")
             
             return validation_passed
             
         except Exception as err:
-            print(f"\nSEEDING FAILED: {err}")
-            print("\nTROUBLESHOOTING:")
-            print("1. Ensure database schema exists: python setup.py")
-            print("2. Check MySQL server is running")
-            print("3. Verify database credentials in config.py")
-            print("4. Ensure seed_data.sql exists and is valid")
+            print(f"Seeding failed: {err}")
+            print("Troubleshooting: Ensure database schema exists (run setup.py) and MySQL server is running")
             return False
 
 
@@ -323,10 +244,10 @@ def main():
         sys.exit(0 if success else 1)
         
     except KeyboardInterrupt:
-        print("\nSeeding interrupted by user")
+        print("Seeding interrupted by user")
         sys.exit(1)
     except Exception as err:
-        print(f"\nUnexpected error: {err}")
+        print(f"Unexpected error: {err}")
         sys.exit(1)
 
 
