@@ -1,16 +1,25 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Film, Clock, Calendar, ArrowLeft, User, Ticket } from "lucide-react"
+import { Film, Clock, Calendar, ArrowLeft, User, Ticket, AlertTriangle } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { motion } from "framer-motion"
 import type { MovieWithShowtimes, SeatWithStatus } from "@/types/database"
 import { SeatClass } from "@/types/database"
+import { lockSeat, unlockSeat, unlockSeats } from "../../utils/seatHelpers"
+import React from "react"
+
+// Booking time limit in seconds (5 minutes)
+const BOOKING_TIME_LIMIT = 5 * 60
 
 export default function MovieDetailsPage({ params }: { params: { showtimeId: string } }) {
+  // Unwrap the params object using React.use()
+  const unwrappedParams = React.use(params as any);
+  const showtimeId = unwrappedParams.showtimeId;
+  
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user } = useAuth()
@@ -21,12 +30,93 @@ export default function MovieDetailsPage({ params }: { params: { showtimeId: str
   const [step, setStep] = useState<"details" | "seats" | "confirmation">("details")
   const [isLoading, setIsLoading] = useState(true)
   const [bookingData, setBookingData] = useState<any>(null)
+  const [seatLoading, setSeatLoading] = useState<{[key: number]: boolean}>({})
+  
+  // Timer state
+  const [timeLeft, setTimeLeft] = useState(BOOKING_TIME_LIMIT)
+  const [timerActive, setTimerActive] = useState(false)
+  const timerRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Auto unlock selected seats
+  const unlockSelectedSeats = useCallback(async () => {
+    if (!user || !selectedShowtime || selectedSeats.length === 0) return
+    
+    try {
+      // Unlock all selected seats
+      await unlockSeats(selectedShowtime, selectedSeats, user.user_id)
+      
+      // Reset the seat selection and UI
+      setSelectedSeats([])
+      setSeats(prevSeats => 
+        prevSeats.map(seat => 
+          selectedSeats.includes(seat.seat_id) ? { ...seat, is_locked: false } : seat
+        )
+      )
+      
+      // Show notification
+      alert("Your booking session has expired. All selected seats have been released.")
+    } catch (error) {
+      console.error("Failed to unlock seats:", error)
+    }
+  }, [user, selectedShowtime, selectedSeats])
+
+  // Start the timer when entering seat selection
+  useEffect(() => {
+    if (step === "seats" && !timerActive && user) {
+      setTimeLeft(BOOKING_TIME_LIMIT)
+      setTimerActive(true)
+    } else if (step !== "seats") {
+      setTimerActive(false)
+      if (timerRef.current) {
+        clearInterval(timerRef.current)
+        timerRef.current = null
+      }
+    }
+  }, [step, timerActive, user])
+
+  // Countdown timer
+  useEffect(() => {
+    if (timerActive && timeLeft > 0) {
+      timerRef.current = setInterval(() => {
+        setTimeLeft(prev => {
+          if (prev <= 1) {
+            // Stop timer and unlock seats
+            setTimerActive(false)
+            if (timerRef.current) clearInterval(timerRef.current)
+            unlockSelectedSeats()
+            return 0
+          }
+          return prev - 1
+        })
+      }, 1000)
+    } else if (timeLeft === 0) {
+      setTimerActive(false)
+      if (timerRef.current) {
+        clearInterval(timerRef.current)
+        timerRef.current = null
+      }
+    }
+    
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current)
+        timerRef.current = null
+      }
+    }
+  }, [timerActive, timeLeft, unlockSelectedSeats])
+
+  // Format time to MM:SS
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60)
+    const remainingSeconds = seconds % 60
+    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`
+  }
 
   // Fetch movie data
   useEffect(() => {
     const fetchMovie = async () => {
       try {
-        const response = await fetch(`/api/v1/movies/${params.showtimeId}`)
+        const response = await fetch(`/api/v1/movies/${showtimeId}`)
         if (!response.ok) {
           throw new Error("Failed to fetch movie")
         }
@@ -81,7 +171,7 @@ export default function MovieDetailsPage({ params }: { params: { showtimeId: str
     }
 
     fetchMovie()
-  }, [params.showtimeId, router])
+  }, [showtimeId, router])
 
   // Fetch seats when showtime is selected
   useEffect(() => {
@@ -146,18 +236,77 @@ export default function MovieDetailsPage({ params }: { params: { showtimeId: str
     fetchSeats()
   }, [selectedShowtime])
 
-  const toggleSeatSelection = (seatId: number) => {
+  const toggleSeatSelection = async (seatId: number) => {
     if (selectedSeats.includes(seatId)) {
-      setSelectedSeats(selectedSeats.filter((id) => id !== seatId))
-    } else {
-      setSelectedSeats([...selectedSeats, seatId])
+      // If seat is already selected, unlock it
+      setSeatLoading(prev => ({ ...prev, [seatId]: true }))
+      
+      try {
+        // Call unlock API
+        const unlocked = await unlockSeat(selectedShowtime || 0, seatId, user?.user_id || 0)
+        
+        if (unlocked) {
+          // Remove from selected seats
+          setSelectedSeats(selectedSeats.filter((id) => id !== seatId))
+          
+          // Update the seat status in the UI
+          setSeats(prevSeats => 
+            prevSeats.map(seat => 
+              seat.seat_id === seatId ? { ...seat, is_locked: false } : seat
+            )
+          )
+        } else {
+          alert("Failed to unlock seat. Please try again.")
+        }
+      } catch (err) {
+        console.error(`Failed to unlock seat ${seatId}`, err)
+        alert("Error unlocking seat. Please try again.")
+      } finally {
+        setSeatLoading(prev => ({ ...prev, [seatId]: false }))
+      }
+      return
+    }
+
+    // Make sure user is logged in
+    if (!user) {
+      router.push(`/login?redirect=/movies/${showtimeId}`)
+      return
+    }
+
+    // Start loading state for this seat
+    setSeatLoading(prev => ({ ...prev, [seatId]: true }))
+    
+    try {
+      // Try to lock the seat immediately
+      const locked = await lockSeat(selectedShowtime || 0, seatId, user.user_id)
+      
+      if (locked) {
+        // If successfully locked, add to selected seats
+        setSelectedSeats([...selectedSeats, seatId])
+        
+        // Update the seat status in the UI to show it's locked
+        setSeats(prevSeats => 
+          prevSeats.map(seat => 
+            seat.seat_id === seatId ? { ...seat, is_locked: true } : seat
+          )
+        )
+      } else {
+        // Show error (could be improved with a proper UI notification)
+        alert(`Failed to lock seat. Please try another seat.`)
+      }
+    } catch (err) {
+      console.error(`Failed to lock seat ${seatId}`, err)
+      alert(`Error locking seat. Please try again.`)
+    } finally {
+      // Clear loading state for this seat
+      setSeatLoading(prev => ({ ...prev, [seatId]: false }))
     }
   }
 
   const handleShowtimeSelect = (showtimeId: number) => {
     // Check if user is logged in before proceeding to seat selection
     if (!user) {
-      router.push(`/login?redirect=/movies/${params.showtimeId}`)
+      router.push(`/login?redirect=/movies/${showtimeId}`)
       return
     }
 
@@ -167,12 +316,13 @@ export default function MovieDetailsPage({ params }: { params: { showtimeId: str
 
   const handleBooking = async () => {
     if (!user) {
-      router.push(`/login?redirect=/movies/${params.showtimeId}`)
+      router.push(`/login?redirect=/movies/${showtimeId}`)
       return
     }
 
     if (selectedSeats.length > 0 && user && selectedShowtime) {
       try {
+        // Seats should already be locked at this point - just create the reservation
         const response = await fetch("/api/v1/reservations", {
           method: "POST",
           headers: {
@@ -186,17 +336,38 @@ export default function MovieDetailsPage({ params }: { params: { showtimeId: str
         })
 
         if (!response.ok) {
-          throw new Error("Failed to create reservation")
+          const errorData = await response.json()
+          throw new Error(errorData.error || "Failed to create reservation")
         }
 
         const data = await response.json()
-        // The API directly returns the reservation data, not nested under a 'data' property
-        setBookingData(data)
+        
+        // Update the bookingData state with a structure that matches what the UI expects
+        // The API might return { reservation_id, status, etc. } directly
+        // But our UI expects { reservation: { reservation_id, status }, tickets: [] }
+        setBookingData({
+          reservation: {
+            reservation_id: data.reservation_id || "R-" + Math.floor(Math.random() * 10000),
+            status: data.status || "confirmed",
+            // Add other reservation fields...
+          },
+          tickets: data.tickets || selectedSeats.map(seatId => {
+            const seat = seats.find(s => s.seat_id === seatId);
+            const price = seat?.seat_class === SeatClass.PREMIUM ? 15 : 
+                       seat?.seat_class === SeatClass.VIP ? 20 : 12;
+            return {
+              ticket_id: "T-" + seatId,
+              seat_id: seatId,
+              price
+            };
+          })
+        })
+        
         setStep("confirmation")
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error creating reservation:", error)
         // Show error to user
-        alert("Failed to create reservation. Please try again.")
+        alert(error.message || "Failed to create reservation. Please try again.")
       }
     } else {
       // Show error if no seats are selected
@@ -204,7 +375,17 @@ export default function MovieDetailsPage({ params }: { params: { showtimeId: str
     }
   }
 
-  const handleBackToDetails = () => {
+  const handleBackToDetails = async () => {
+    // Unlock any selected seats before going back
+    if (selectedSeats.length > 0 && user && selectedShowtime) {
+      try {
+        await unlockSeats(selectedShowtime, selectedSeats, user.user_id)
+        console.log("Unlocked seats when going back:", selectedSeats)
+      } catch (error) {
+        console.error("Failed to unlock seats when going back:", error)
+      }
+    }
+    
     setStep("details")
     setSelectedShowtime(null)
     setSelectedSeats([])
@@ -273,7 +454,7 @@ export default function MovieDetailsPage({ params }: { params: { showtimeId: str
                 </Link>
               </>
             ) : (
-              <Link href={`/login?redirect=/movies/${params.showtimeId}`}>
+              <Link href={`/login?redirect=/movies/${showtimeId}`}>
                 <Button className="bg-yellow-400 text-black hover:bg-yellow-500 font-mono font-bold border-4 border-black">
                   LOGIN
                 </Button>
@@ -409,8 +590,8 @@ export default function MovieDetailsPage({ params }: { params: { showtimeId: str
                         </div>
                       </div>
                       <div className="mb-4 font-mono">
-                        <div className="font-bold">Screen:</div>
-                        <div>{showtime.screen?.name || "Screen information not available"}</div>
+                        <div className="font-bold">Screen: {showtime.screen?.name || "Screen information not available"}</div>
+                        <div className="font-bold">Cinema: {showtime.cinema?.address || "Screen information not available"}</div>
                       </div>
                       <Button
                         onClick={() => handleShowtimeSelect(showtime.showtime_id)}
@@ -454,6 +635,25 @@ export default function MovieDetailsPage({ params }: { params: { showtimeId: str
                     ).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                 </div>
               </div>
+              
+              {/* Booking Timer */}
+              <div className={`mb-6 p-4 border-4 ${timeLeft < 60 ? 'border-red-500 bg-red-100' : 'border-yellow-400 bg-yellow-50'}`}>
+                <div className="flex justify-between items-center">
+                  <div className="font-mono flex items-center gap-2">
+                    <Clock className={`h-5 w-5 ${timeLeft < 60 ? 'text-red-500' : 'text-black'}`} />
+                    <span className="font-bold">BOOKING TIME REMAINING:</span>
+                  </div>
+                  <div className={`font-mono text-2xl font-bold ${timeLeft < 60 ? 'text-red-600' : timeLeft < 120 ? 'text-orange-500' : 'text-black'}`}>
+                    {formatTime(timeLeft)}
+                  </div>
+                </div>
+                {timeLeft < 60 && (
+                  <div className="mt-2 text-red-600 flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4" />
+                    <span className="text-sm">Your reserved seats will be released when the timer ends!</span>
+                  </div>
+                )}
+              </div>
 
               <div className="mb-8">
                 <div className="w-full bg-black p-2 text-center text-white font-mono mb-8">SCREEN</div>
@@ -466,18 +666,22 @@ export default function MovieDetailsPage({ params }: { params: { showtimeId: str
                       whileTap={!seat.is_locked && !seat.is_booked ? { scale: 0.95 } : {}}
                       onClick={() => !seat.is_locked && !seat.is_booked && toggleSeatSelection(seat.seat_id)}
                       className={`aspect-square flex items-center justify-center border-4 ${
-                        seat.is_booked || seat.is_locked
-                          ? "bg-gray-300 border-gray-400 cursor-not-allowed"
-                          : selectedSeats.includes(seat.seat_id)
-                            ? "bg-green-500 border-black cursor-pointer"
-                            : seat.seat_class === SeatClass.PREMIUM
-                              ? "bg-yellow-200 border-black cursor-pointer hover:bg-yellow-100"
-                              : seat.seat_class === SeatClass.VIP
-                                ? "bg-purple-200 border-black cursor-pointer hover:bg-purple-100"
-                                : "bg-white border-black cursor-pointer hover:bg-gray-100"
+                        seatLoading[seat.seat_id]
+                          ? "bg-blue-100 border-blue-300 animate-pulse"
+                          : seat.is_booked || seat.is_locked
+                            ? "bg-gray-300 border-gray-400 cursor-not-allowed"
+                            : selectedSeats.includes(seat.seat_id)
+                              ? "bg-green-500 border-black cursor-pointer"
+                              : seat.seat_class === SeatClass.PREMIUM
+                                ? "bg-yellow-200 border-black cursor-pointer hover:bg-yellow-100"
+                                : seat.seat_class === SeatClass.VIP
+                                  ? "bg-purple-200 border-black cursor-pointer hover:bg-purple-100"
+                                  : "bg-white border-black cursor-pointer hover:bg-gray-100"
                       }`}
                     >
-                      <span className="font-mono font-bold">{seat.seat_label}</span>
+                      <span className="font-mono font-bold">
+                        {seatLoading[seat.seat_id] ? "..." : seat.seat_label}
+                      </span>
                     </motion.div>
                   ))}
                 </div>

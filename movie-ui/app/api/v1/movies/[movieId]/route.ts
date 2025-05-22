@@ -4,12 +4,14 @@ import axios from "axios"
 // Base URL for your Flask API
 const FLASK_API_BASE_URL = "http://127.0.0.1:5000/api/v1/movies"
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+export async function GET(request: Request, context: { params: { movieId: string } }) {
   try {
-    const movieId = Number.parseInt(params.id)
+    // Await params before using them
+    const { movieId } = await context.params;
+    const movieIdNumber = Number.parseInt(movieId);
 
     // Send a request to the Flask API
-    const response = await axios.get(`${FLASK_API_BASE_URL}/${movieId}`)
+    const response = await axios.get(`${FLASK_API_BASE_URL}/${movieIdNumber}`)
 
     // Check if the response is successful
     if (response.status === 200) {

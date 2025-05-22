@@ -1,8 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
 import axios from "axios"
 
-// Base URL for your Flask API
-const FLASK_API_BASE_URL = "http://127.0.0.1:5000/api/v1/reservations"
+// Base URL for your Flask API - IMPORTANT: Include trailing slash for Flask
+const FLASK_API_BASE_URL = "http://127.0.0.1:5000/api/v1/reservations/"
 
 export async function GET(request: NextRequest) {
   try {
@@ -45,7 +45,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "User ID, showtime ID, and seats are required" }, { status: 400 })
     }
 
-    // Send a request to the Flask API
+    console.log("Creating reservation with:", { user_id, showtime_id, seats });
+
+    // Send a request to the Flask API - include trailing slash
     const response = await axios.post(FLASK_API_BASE_URL, { user_id, showtime_id, seats })
 
     // Check if the response is successful
@@ -56,10 +58,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Failed to create reservation" }, { status: response.status })
     }
   } catch (error: any) {
-    console.error("Error creating reservation:", error)
+    console.error("Error creating reservation:", error.message)
     if (error.response) {
+      console.error("Server response:", error.response.data);
       return NextResponse.json(
-        { error: error.response.data.message || "Failed to create reservation" },
+        { error: error.response.data.error || "Failed to create reservation" },
         { status: error.response.status },
       )
     }

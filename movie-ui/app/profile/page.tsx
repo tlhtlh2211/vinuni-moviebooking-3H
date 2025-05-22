@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Film, LogOut, Calendar, Clock, ArrowLeft } from "lucide-react"
+import { Film, LogOut, Calendar, Clock, ArrowLeft, AlertCircle, CheckCircle2 } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { motion } from "framer-motion"
 import type { Reservation, Ticket as TicketType } from "@/types/database"
@@ -22,6 +22,7 @@ type BookingWithDetails = {
     date: string
     screen: string
     cinema: string
+    showtimeDate: Date // For sorting purposes
   }
 }
 
@@ -78,6 +79,7 @@ export default function ProfilePage() {
               date: startTime.toLocaleDateString(),
               screen: `Screen ${showtime.screen_id || '?'}`,
               cinema: 'Brutal Cinema',
+              showtimeDate: startTime // Store the actual date object for sorting
             }
           };
         });
@@ -118,6 +120,7 @@ export default function ProfilePage() {
               date: "2025-05-20",
               screen: "Screen 1",
               cinema: "Brutal Cineplex",
+              showtimeDate: new Date("2025-05-20T14:30:00") // Add date for sorting
             },
           },
           {
@@ -144,6 +147,35 @@ export default function ProfilePage() {
               date: "2025-05-22",
               screen: "Screen 2 (IMAX)",
               cinema: "Brutal Cineplex",
+              showtimeDate: new Date("2025-05-22T19:00:00") // Add date for sorting
+            },
+          },
+          // Add a past show for demonstration purposes
+          {
+            reservation: {
+              reservation_id: 3,
+              user_id: user.user_id,
+              showtime_id: 4,
+              status: ReservationStatus.EXPIRED,
+              created_at: "2025-04-10T10:15:00",
+              expires_at: "2025-04-15T15:30:00",
+            },
+            tickets: [
+              {
+                ticket_id: 4,
+                reservation_id: 3,
+                seat_id: 5,
+                price: 12.0,
+                issued_at: "2025-04-10T10:15:00",
+              },
+            ],
+            movie: {
+              title: "PAST MOVIE",
+              showtime: "15:30",
+              date: "2025-04-15",
+              screen: "Screen 1",
+              cinema: "Brutal Cineplex",
+              showtimeDate: new Date("2025-04-15T15:30:00") // Past date
             },
           },
         ];
@@ -164,6 +196,16 @@ export default function ProfilePage() {
   if (!user) {
     return null // Or a loading spinner
   }
+  
+  // Separate bookings into upcoming and past
+  const now = new Date();
+  const upcomingBookings = bookings
+    .filter(booking => booking.movie.showtimeDate > now)
+    .sort((a, b) => a.movie.showtimeDate.getTime() - b.movie.showtimeDate.getTime());
+  
+  const pastBookings = bookings
+    .filter(booking => booking.movie.showtimeDate <= now)
+    .sort((a, b) => b.movie.showtimeDate.getTime() - a.movie.showtimeDate.getTime()); // Most recent first
 
   return (
     <div className="min-h-screen bg-white">
@@ -246,95 +288,223 @@ export default function ProfilePage() {
             </Link>
           </div>
         ) : (
-          <div className="space-y-8">
-            {bookings.map((booking) => (
-              <motion.div
-                key={booking.reservation.reservation_id}
-                initial={{ y: 50, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ duration: 0.5 }}
-                className="bg-white border-8 border-black overflow-hidden"
-              >
-                <div className="grid grid-cols-1 md:grid-cols-3">
-                  {/* Movie Info */}
-                  <div className="md:col-span-2 p-6 border-r-0 md:border-r-8 border-black">
-                    <div className="flex justify-between items-start mb-4">
-                      <motion.div
-                        initial={{ rotate: 0 }}
-                        animate={{ rotate: -1 }}
-                        transition={{ duration: 0.5 }}
-                        className="bg-red-500 p-3 border-4 border-black inline-block"
-                      >
-                        <h3 className="text-2xl font-mono font-bold text-white">{booking.movie.title}</h3>
-                      </motion.div>
-                      <div className="bg-green-500 text-white p-2 border-4 border-black font-mono font-bold">
-                        {booking.reservation.status.toUpperCase()}
-                      </div>
-                    </div>
+          <div>
+            {/* Upcoming Shows Section */}
+            {upcomingBookings.length > 0 && (
+              <div className="mb-12">
+                <motion.div
+                  initial={{ rotate: 0, x: -20, opacity: 0 }}
+                  animate={{ rotate: 0, x: 0, opacity: 1 }}
+                  transition={{ duration: 0.5 }}
+                  className="bg-green-500 p-3 border-4 border-black inline-block mb-6"
+                >
+                  <h3 className="text-xl font-mono font-bold text-white flex items-center gap-2">
+                    <CheckCircle2 className="h-5 w-5" />
+                    UPCOMING SHOWS
+                  </h3>
+                </motion.div>
+                
+                <div className="space-y-8">
+                  {upcomingBookings.map((booking) => (
+                    <motion.div
+                      key={booking.reservation.reservation_id}
+                      initial={{ y: 50, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ duration: 0.5 }}
+                      className="bg-white border-8 border-black overflow-hidden"
+                    >
+                      <div className="grid grid-cols-1 md:grid-cols-3">
+                        {/* Movie Info */}
+                        <div className="md:col-span-2 p-6 border-r-0 md:border-r-8 border-black">
+                          <div className="flex justify-between items-start mb-4">
+                            <motion.div
+                              initial={{ rotate: 0 }}
+                              animate={{ rotate: -1 }}
+                              transition={{ duration: 0.5 }}
+                              className="bg-red-500 p-3 border-4 border-black inline-block"
+                            >
+                              <h3 className="text-2xl font-mono font-bold text-white">{booking.movie.title}</h3>
+                            </motion.div>
+                            <div className="bg-green-500 text-white p-2 border-4 border-black font-mono font-bold">
+                              {booking.reservation.status.toUpperCase()}
+                            </div>
+                          </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-5 w-5" />
-                        <span className="font-mono">{booking.movie.date}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-5 w-5" />
-                        <span className="font-mono">{booking.movie.showtime}</span>
-                      </div>
-                    </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-5 w-5" />
+                              <span className="font-mono">{booking.movie.date}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Clock className="h-5 w-5" />
+                              <span className="font-mono">{booking.movie.showtime}</span>
+                            </div>
+                          </div>
 
-                    <div className="mb-4">
-                      <div className="font-mono font-bold">CINEMA:</div>
-                      <div className="font-mono">{booking.movie.cinema}</div>
-                    </div>
+                          <div className="mb-4">
+                            <div className="font-mono font-bold">CINEMA:</div>
+                            <div className="font-mono">{booking.movie.cinema}</div>
+                          </div>
 
-                    <div className="mb-4">
-                      <div className="font-mono font-bold">SCREEN:</div>
-                      <div className="font-mono">{booking.movie.screen}</div>
-                    </div>
+                          <div className="mb-4">
+                            <div className="font-mono font-bold">SCREEN:</div>
+                            <div className="font-mono">{booking.movie.screen}</div>
+                          </div>
 
-                    <div className="mb-4">
-                      <div className="font-mono font-bold">SEATS:</div>
-                      <div className="font-mono">
-                        {booking.tickets.map((ticket) => `A${ticket.seat_id}`).join(", ")}
-                      </div>
-                    </div>
+                          <div className="mb-4">
+                            <div className="font-mono font-bold">SEATS:</div>
+                            <div className="font-mono">
+                              {booking.tickets.map((ticket) => `A${ticket.seat_id}`).join(", ")}
+                            </div>
+                          </div>
 
-                    <div className="bg-yellow-400 p-4 border-4 border-black">
-                      <div className="flex justify-between">
-                        <div className="font-mono">
-                          <div className="font-bold">TICKETS:</div>
-                          <div>{booking.tickets.length}</div>
+                          <div className="bg-yellow-400 p-4 border-4 border-black">
+                            <div className="flex justify-between">
+                              <div className="font-mono">
+                                <div className="font-bold">TICKETS:</div>
+                                <div>{booking.tickets.length}</div>
+                              </div>
+                              <div className="font-mono">
+                                <div className="font-bold">TOTAL:</div>
+                                <div className="text-xl">
+                                  ${booking.tickets.reduce((sum, ticket) => sum + ticket.price, 0).toFixed(2)}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                        <div className="font-mono">
-                          <div className="font-bold">TOTAL:</div>
-                          <div className="text-xl">
-                            ${booking.tickets.reduce((sum, ticket) => sum + ticket.price, 0).toFixed(2)}
+
+                        {/* QR Code */}
+                        <div className="bg-white p-6 flex flex-col items-center justify-center">
+                          <div className="bg-white p-4 border-4 border-black mb-4">
+                            <QRCodeSVG
+                              value={`BRUTAL-CINEMA-TICKET-${booking.reservation.reservation_id}`}
+                              size={150}
+                              level="H"
+                              includeMargin={true}
+                              className="mx-auto"
+                            />
+                          </div>
+                          <div className="font-mono text-center">
+                            <div className="font-bold">RESERVATION ID:</div>
+                            <div>{booking.reservation.reservation_id}</div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  </div>
-
-                  {/* QR Code */}
-                  <div className="bg-white p-6 flex flex-col items-center justify-center">
-                    <div className="bg-white p-4 border-4 border-black mb-4">
-                      <QRCodeSVG
-                        value={`BRUTAL-CINEMA-TICKET-${booking.reservation.reservation_id}`}
-                        size={150}
-                        level="H"
-                        includeMargin={true}
-                        className="mx-auto"
-                      />
-                    </div>
-                    <div className="font-mono text-center">
-                      <div className="font-bold">RESERVATION ID:</div>
-                      <div>{booking.reservation.reservation_id}</div>
-                    </div>
-                  </div>
+                    </motion.div>
+                  ))}
                 </div>
-              </motion.div>
-            ))}
+              </div>
+            )}
+            
+            {/* Past Shows Section */}
+            {pastBookings.length > 0 && (
+              <div>
+                <motion.div
+                  initial={{ rotate: 0, x: -20, opacity: 0 }}
+                  animate={{ rotate: 0, x: 0, opacity: 1 }}
+                  transition={{ duration: 0.5 }}
+                  className="bg-gray-500 p-3 border-4 border-black inline-block mb-6"
+                >
+                  <h3 className="text-xl font-mono font-bold text-white flex items-center gap-2">
+                    <AlertCircle className="h-5 w-5" />
+                    PAST SHOWS
+                  </h3>
+                </motion.div>
+                
+                <div className="space-y-8">
+                  {/* Only show the 5 most recent past bookings */}
+                  {pastBookings.slice(0, 5).map((booking) => (
+                    <motion.div
+                      key={booking.reservation.reservation_id}
+                      initial={{ y: 50, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ duration: 0.5 }}
+                      className="bg-white border-8 border-black overflow-hidden opacity-80"
+                    >
+                      <div className="grid grid-cols-1 md:grid-cols-3">
+                        {/* Movie Info */}
+                        <div className="md:col-span-2 p-6 border-r-0 md:border-r-8 border-black">
+                          <div className="flex justify-between items-start mb-4">
+                            <motion.div
+                              initial={{ rotate: 0 }}
+                              animate={{ rotate: -1 }}
+                              transition={{ duration: 0.5 }}
+                              className="bg-gray-500 p-3 border-4 border-black inline-block"
+                            >
+                              <h3 className="text-2xl font-mono font-bold text-white">{booking.movie.title}</h3>
+                            </motion.div>
+                            <div className="bg-gray-500 text-white p-2 border-4 border-black font-mono font-bold">
+                              {booking.reservation.status.toUpperCase()}
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-5 w-5" />
+                              <span className="font-mono">{booking.movie.date}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Clock className="h-5 w-5" />
+                              <span className="font-mono">{booking.movie.showtime}</span>
+                            </div>
+                          </div>
+
+                          <div className="mb-4">
+                            <div className="font-mono font-bold">CINEMA:</div>
+                            <div className="font-mono">{booking.movie.cinema}</div>
+                          </div>
+
+                          <div className="mb-4">
+                            <div className="font-mono font-bold">SCREEN:</div>
+                            <div className="font-mono">{booking.movie.screen}</div>
+                          </div>
+
+                          <div className="mb-4">
+                            <div className="font-mono font-bold">SEATS:</div>
+                            <div className="font-mono">
+                              {booking.tickets.map((ticket) => `A${ticket.seat_id}`).join(", ")}
+                            </div>
+                          </div>
+
+                          <div className="bg-gray-300 p-4 border-4 border-black">
+                            <div className="flex justify-between">
+                              <div className="font-mono">
+                                <div className="font-bold">TICKETS:</div>
+                                <div>{booking.tickets.length}</div>
+                              </div>
+                              <div className="font-mono">
+                                <div className="font-bold">TOTAL:</div>
+                                <div className="text-xl">
+                                  ${booking.tickets.reduce((sum, ticket) => sum + ticket.price, 0).toFixed(2)}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* QR Code */}
+                        <div className="bg-white p-6 flex flex-col items-center justify-center">
+                          <div className="bg-gray-100 p-4 border-4 border-black mb-4">
+                            <QRCodeSVG
+                              value={`BRUTAL-CINEMA-TICKET-${booking.reservation.reservation_id}`}
+                              size={150}
+                              level="H"
+                              includeMargin={true}
+                              className="mx-auto opacity-70"
+                            />
+                          </div>
+                          <div className="font-mono text-center">
+                            <div className="font-bold">RESERVATION ID:</div>
+                            <div>{booking.reservation.reservation_id}</div>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
