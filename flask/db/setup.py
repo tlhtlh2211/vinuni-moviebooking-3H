@@ -90,40 +90,23 @@ class DatabaseSetup:
             print(f"Error creating database: {err}")
             raise
     
-    def _drop_existing_objects(self, cursor):
-        """Drop existing database objects in correct order."""
+    def _drop_database(self):
+        """Drop the entire database if it exists."""
         try:
-            # Disable foreign key checks for clean drop
-            cursor.execute("SET FOREIGN_KEY_CHECKS = 0")
+            # Connect without specifying database
+            connection = mysql.connector.connect(**self.admin_config)
+            cursor = connection.cursor()
             
-            # Drop procedures
-            cursor.execute("DROP PROCEDURE IF EXISTS sp_create_reservation")
-            cursor.execute("DROP PROCEDURE IF EXISTS sp_confirm_reservation")
-            cursor.execute("DROP PROCEDURE IF EXISTS sp_cancel_reservation")
+            # Drop database if exists
+            cursor.execute(f"DROP DATABASE IF EXISTS `{self.db_name}`")
+            print(f"Database '{self.db_name}' dropped")
             
-            # Drop views
-            cursor.execute("DROP VIEW IF EXISTS v_available_seats")
-            cursor.execute("DROP VIEW IF EXISTS v_reservation_totals")
-            
-            # Drop triggers
-            cursor.execute("DROP TRIGGER IF EXISTS trg_showtime_no_overlap")
-            cursor.execute("DROP TRIGGER IF EXISTS trg_showtime_no_overlap_update")
-            
-            # Drop tables in reverse dependency order
-            tables = [
-                'seat_locks', 'tickets', 'reservations', 'showtimes',
-                'seats', 'screens', 'users', 'movies', 'cinemas'
-            ]
-            
-            for table in tables:
-                cursor.execute(f"DROP TABLE IF EXISTS `{table}`")
-            
-            # Re-enable foreign key checks
-            cursor.execute("SET FOREIGN_KEY_CHECKS = 1")
+            cursor.close()
+            connection.close()
             
         except mysql.connector.Error as err:
-            print(f"Warning during cleanup: {err}")
-            # Continue anyway - this is just cleanup
+            print(f"Error dropping database: {err}")
+            raise
     
     def _execute_schema(self, cursor):
         """Execute the schema.sql file."""
@@ -141,6 +124,8 @@ class DatabaseSetup:
                 if statement and not statement.startswith('--'):
                     try:
                         cursor.execute(statement)
+                        # Consume any result sets to prevent "Commands out of sync" error
+                        self._consume_results(cursor)
                     except mysql.connector.Error as err:
                         print(f"Error in statement {i}: {err}")
                         print(f"Statement: {statement[:100]}...")
@@ -154,6 +139,24 @@ class DatabaseSetup:
         except Exception as err:
             print(f"Error executing schema: {err}")
             raise
+    
+    def _consume_results(self, cursor):
+        """Consume any result sets to prevent 'Commands out of sync' error."""
+        try:
+            # Try to fetch all results from the current statement
+            while True:
+                try:
+                    cursor.fetchall()
+                except mysql.connector.Error:
+                    # No more results to fetch
+                    break
+                
+                # Check if there are more result sets
+                if not cursor.nextset():
+                    break
+        except mysql.connector.Error:
+            # No results to consume or nextset() not available
+            pass
     
     def _parse_sql_statements(self, content):
         """Parse SQL content into individual statements, handling DELIMITER changes."""
@@ -200,16 +203,16 @@ class DatabaseSetup:
         print("Starting database schema setup...")
         
         try:
-            # Step 1: Create database
+            # Step 1: Drop existing database
+            self._drop_database()
+            
+            # Step 2: Create fresh database
             self._create_database()
             
-            # Step 2: Connect to the specific database
+            # Step 3: Connect to the specific database
             connection = mysql.connector.connect(**self.config)
             connection.autocommit = False  # Use transactions
             cursor = connection.cursor()
-            
-            # Step 3: Clean existing objects
-            self._drop_existing_objects(cursor)
             
             # Step 4: Execute schema
             self._execute_schema(cursor)

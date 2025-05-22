@@ -152,7 +152,7 @@ class DatabaseSeeder:
             # Check if statement ends with semicolon
             if line.endswith(';'):
                 statement = current_statement.strip().rstrip(';').strip()
-                if statement and not statement.upper().startswith('SET'):
+                if statement:
                     statements.append(statement + ';')
                 current_statement = ""
         
@@ -167,7 +167,7 @@ class DatabaseSeeder:
         validations = [
             ("users", "SELECT COUNT(*) FROM users", 5, "users"),
             ("movies", "SELECT COUNT(*) FROM movies", 6, "movies"),
-            ("showtimes", "SELECT COUNT(*) FROM showtimes", 13, "showtimes"),
+            ("showtimes", "SELECT COUNT(*) FROM showtimes", 14, "showtimes"),
             ("reservations", "SELECT COUNT(*) FROM reservations", 4, "reservations"),
         ]
         
