@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import axios from "axios"
+import axios, { AxiosError } from "axios"
 
 // Base URL for your Flask API
 const FLASK_API_BASE_URL = "http://127.0.0.1:5000/api/v1/showtimes"
@@ -26,9 +26,9 @@ export async function POST(request: NextRequest, { params }: { params: { showtim
     } else {
       return NextResponse.json({ error: "Failed to unlock seat" }, { status: response.status })
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error unlocking seat:", error)
-    if (error.response) {
+    if (axios.isAxiosError(error) && error.response) {
       return NextResponse.json(
         { error: error.response.data.message || "Failed to unlock seat" },
         { status: error.response.status },

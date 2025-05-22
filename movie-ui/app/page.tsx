@@ -8,6 +8,7 @@ import { Film, Ticket, Star, Clock, User } from "lucide-react"
 import { motion } from "framer-motion"
 import { useAuth } from "@/contexts/auth-context"
 import type { Movie } from "@/types/database"
+import Image from "next/image"
 
 export default function Home() {
   const router = useRouter()
@@ -188,7 +189,7 @@ export default function Home() {
               ) : (
                 <div className="grid grid-cols-2 gap-4">
                   {featuredMovies.length > 0 ? (
-                    featuredMovies.map((movie, i) => (
+                    featuredMovies.map((movie) => (
                       <motion.div
                         key={movie.movie_id}
                         whileHover={{ scale: 1.05, rotate: 1 }}
@@ -199,10 +200,12 @@ export default function Home() {
                         <Link href={`/movies/${movie.movie_id}`}>
                           <div className="w-full h-full flex items-center justify-center font-mono font-bold">
                             {movie.poster_url ? (
-                              <img 
+                              <Image 
                                 src={movie.poster_url} 
                                 alt={movie.title}
                                 className="w-full h-full object-cover absolute inset-0"
+                                width={300}
+                                height={450}
                               />
                             ) : (
                               <span className="z-10">MOVIE {movie.movie_id}</span>
@@ -252,7 +255,7 @@ export default function Home() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {featuredMovies.length > 0 ? (
-            featuredMovies.slice(0, 3).map((movie, i) => (
+            featuredMovies.slice(0, 3).map((movie) => (
               <motion.div
                 key={movie.movie_id}
                 whileHover={{ scale: 1.03, y: -10 }}
@@ -260,10 +263,12 @@ export default function Home() {
               >
                 <div className="aspect-video bg-gray-200 border-b-8 border-black relative overflow-hidden">
                   {movie.poster_url ? (
-                    <img 
+                    <Image 
                       src={movie.poster_url} 
                       alt={movie.title}
                       className="w-full h-full object-cover absolute inset-0"
+                      width={300}
+                      height={450}
                     />
                   ) : null}
                   <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent opacity-50 group-hover:opacity-70 transition-opacity"></div>

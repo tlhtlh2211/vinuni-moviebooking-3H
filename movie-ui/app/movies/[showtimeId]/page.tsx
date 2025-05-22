@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import Link from "next/link"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Film, Clock, Calendar, ArrowLeft, User, Ticket, AlertTriangle } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
@@ -11,17 +11,13 @@ import type { MovieWithShowtimes, SeatWithStatus } from "@/types/database"
 import { SeatClass } from "@/types/database"
 import { lockSeat, unlockSeat, unlockSeats } from "../../utils/seatHelpers"
 import React from "react"
+import Image from "next/image"
 
 // Booking time limit in seconds (5 minutes)
 const BOOKING_TIME_LIMIT = 5 * 60
 
 export default function MovieDetailsPage({ params }: { params: { showtimeId: string } }) {
-  // Unwrap the params object using React.use()
-  const unwrappedParams = React.use(params as any);
-  const showtimeId = unwrappedParams.showtimeId;
-  
   const router = useRouter()
-  const searchParams = useSearchParams()
   const { user } = useAuth()
   const [movie, setMovie] = useState<MovieWithShowtimes | null>(null)
   const [selectedShowtime, setSelectedShowtime] = useState<number | null>(null)
@@ -29,7 +25,7 @@ export default function MovieDetailsPage({ params }: { params: { showtimeId: str
   const [selectedSeats, setSelectedSeats] = useState<number[]>([])
   const [step, setStep] = useState<"details" | "seats" | "confirmation">("details")
   const [isLoading, setIsLoading] = useState(true)
-  const [bookingData, setBookingData] = useState<any>(null)
+  const [bookingData, setBookingData] = useState<Record<string, any> | null>(null)
   const [seatLoading, setSeatLoading] = useState<{[key: number]: boolean}>({})
   
   // Timer state
@@ -116,7 +112,7 @@ export default function MovieDetailsPage({ params }: { params: { showtimeId: str
   useEffect(() => {
     const fetchMovie = async () => {
       try {
-        const response = await fetch(`/api/v1/movies/${showtimeId}`)
+        const response = await fetch(`/api/v1/movies/${params.showtimeId}`)
         if (!response.ok) {
           throw new Error("Failed to fetch movie")
         }
@@ -171,7 +167,7 @@ export default function MovieDetailsPage({ params }: { params: { showtimeId: str
     }
 
     fetchMovie()
-  }, [showtimeId, router])
+  }, [params.showtimeId, router])
 
   // Fetch seats when showtime is selected
   useEffect(() => {
@@ -269,7 +265,7 @@ export default function MovieDetailsPage({ params }: { params: { showtimeId: str
 
     // Make sure user is logged in
     if (!user) {
-      router.push(`/login?redirect=/movies/${showtimeId}`)
+      router.push(`/login?redirect=/movies/${params.showtimeId}`)
       return
     }
 
@@ -306,7 +302,7 @@ export default function MovieDetailsPage({ params }: { params: { showtimeId: str
   const handleShowtimeSelect = (showtimeId: number) => {
     // Check if user is logged in before proceeding to seat selection
     if (!user) {
-      router.push(`/login?redirect=/movies/${showtimeId}`)
+      router.push(`/login?redirect=/movies/${params.showtimeId}`)
       return
     }
 
@@ -316,7 +312,7 @@ export default function MovieDetailsPage({ params }: { params: { showtimeId: str
 
   const handleBooking = async () => {
     if (!user) {
-      router.push(`/login?redirect=/movies/${showtimeId}`)
+      router.push(`/login?redirect=/movies/${params.showtimeId}`)
       return
     }
 
@@ -391,10 +387,6 @@ export default function MovieDetailsPage({ params }: { params: { showtimeId: str
     setSelectedSeats([])
   }
 
-  const handleBackToSeats = () => {
-    setStep("seats")
-  }
-
   if (isLoading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
@@ -454,7 +446,7 @@ export default function MovieDetailsPage({ params }: { params: { showtimeId: str
                 </Link>
               </>
             ) : (
-              <Link href={`/login?redirect=/movies/${showtimeId}`}>
+              <Link href={`/login?redirect=/movies/${params.showtimeId}`}>
                 <Button className="bg-yellow-400 text-black hover:bg-yellow-500 font-mono font-bold border-4 border-black">
                   LOGIN
                 </Button>
@@ -492,10 +484,12 @@ export default function MovieDetailsPage({ params }: { params: { showtimeId: str
               >
                 <div className="bg-gray-200 aspect-[2/3] border-8 border-black flex items-center justify-center relative overflow-hidden">
                   {movie.poster_url ? (
-                    <img 
+                    <Image 
                       src={movie.poster_url} 
                       alt={movie.title} 
                       className="w-full h-full object-cover"
+                      width={400}
+                      height={600}
                     />
                   ) : (
                     <>
