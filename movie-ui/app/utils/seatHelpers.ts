@@ -22,7 +22,7 @@ export async function lockSeat(showtimeId: number, seatId: number, userId: numbe
  */
 export async function unlockSeat(showtimeId: number, seatId: number, userId: number): Promise<boolean> {
   try {
-    const response = await axios.post(`/api/v1/showtimes/${showtimeId}/seats/${seatId}/unlock`, {
+    await axios.post(`/api/v1/showtimes/${showtimeId}/seats/${seatId}/unlock`, {
       user_id: userId
     });
     
@@ -73,7 +73,7 @@ export async function createReservation(
   showtimeId: number,
   seatIds: number[],
   userId: number
-): Promise<any> {
+): Promise<Record<string, unknown>> {
   try {
     // First, ensure all seats are locked
     const lockedSeats = await lockSeats(showtimeId, seatIds, userId);

@@ -55,9 +55,9 @@ export default function ProfilePage() {
         const reservationsData = await response.json();
         
         // Transform the API response to match our UI format
-        const bookingsWithDetails: BookingWithDetails[] = reservationsData.map((reservation: any) => {
+        const bookingsWithDetails: BookingWithDetails[] = reservationsData.map((reservation: Record<string, any>) => {
           // Get the movie title from the showtime
-          const showtime = reservation.showtime || {};
+          const showtime = reservation.showtime as Record<string, any> || {};
           const movieTitle = showtime.movie_title || 'Unknown Movie';
           
           // Format the dates
@@ -280,7 +280,7 @@ export default function ProfilePage() {
         ) : bookings.length === 0 ? (
           <div className="bg-white border-8 border-black p-8 text-center">
             <h3 className="text-2xl font-mono font-bold mb-4">NO TICKETS FOUND</h3>
-            <p className="font-mono mb-6">You haven't booked any movie tickets yet.</p>
+            <p className="font-mono mb-6">You haven&apos;t booked any movie tickets yet.</p>
             <Link href="/movies">
               <Button className="bg-black text-white hover:bg-gray-800 font-mono border-4 border-black">
                 BROWSE MOVIES

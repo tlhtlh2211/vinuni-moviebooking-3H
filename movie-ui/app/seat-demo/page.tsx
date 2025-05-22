@@ -3,8 +3,15 @@
 import { useState, useEffect } from 'react';
 import { lockSeat } from '../utils/seatHelpers';
 
+type Seat = {
+  seat_id: number;
+  seat_label: string;
+  status: 'available' | 'locked' | 'sold';
+  [key: string]: unknown;
+};
+
 export default function SeatDemo() {
-  const [seats, setSeats] = useState<any[]>([]);
+  const [seats, setSeats] = useState<Seat[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userId, setUserId] = useState(16); // Default user ID
@@ -21,7 +28,7 @@ export default function SeatDemo() {
         } else {
           setError('No seat data found');
         }
-      } catch (err) {
+      } catch (_error) {
         setError('Failed to load seats');
       } finally {
         setLoading(false);
@@ -50,7 +57,7 @@ export default function SeatDemo() {
       } else {
         setError(`Failed to lock seat ${seatId}. Please try another seat.`);
       }
-    } catch (err) {
+    } catch (_error) {
       setError(`Failed to lock seat ${seatId}`);
     } finally {
       // Clear loading state for this seat
