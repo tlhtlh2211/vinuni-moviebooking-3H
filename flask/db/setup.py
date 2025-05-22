@@ -18,7 +18,6 @@ Features:
 import mysql.connector
 import os
 import sys
-import argparse
 from pathlib import Path
 
 
@@ -33,51 +32,38 @@ class DatabaseSetup:
         self.admin_config = {k: v for k, v in self.config.items() if k != 'database'}
         
     def _load_config(self):
-        """Load database configuration from config.py or environment."""
-        try:
-            # Try to load from config.py
-            sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-            from config import Config
+        """Load database configuration from config.py."""
+        # Load from config.py
+        sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+        from config import Config
+        
+        # Parse SQLALCHEMY_DATABASE_URI
+        uri = Config.SQLALCHEMY_DATABASE_URI
+        # Remove mysql+pymysql:// prefix
+        uri = uri.replace('mysql+pymysql://', '')
+        
+        # Parse username:password@host:port/database
+        auth_part, host_part = uri.split('@')
+        username, password = auth_part.split(':')
+        host_db_part = host_part.split('/')
+        host_port = host_db_part[0]
+        database = host_db_part[1] if len(host_db_part) > 1 else 'movie_booking'
+        
+        if ':' in host_port:
+            host, port = host_port.split(':')
+            port = int(port)
+        else:
+            host, port = host_port, 3306
             
-            # Parse SQLALCHEMY_DATABASE_URI
-            uri = Config.SQLALCHEMY_DATABASE_URI
-            # Remove mysql+pymysql:// prefix
-            uri = uri.replace('mysql+pymysql://', '')
-            
-            # Parse username:password@host:port/database
-            auth_part, host_part = uri.split('@')
-            username, password = auth_part.split(':')
-            host_db_part = host_part.split('/')
-            host_port = host_db_part[0]
-            database = host_db_part[1] if len(host_db_part) > 1 else 'movie_booking_dev'
-            
-            if ':' in host_port:
-                host, port = host_port.split(':')
-                port = int(port)
-            else:
-                host, port = host_port, 3306
-                
-            return {
-                'host': host,
-                'port': port,
-                'user': username,
-                'password': password,
-                'database': database,
-                'charset': 'utf8mb4',
-                'autocommit': False
-            }
-            
-        except ImportError:
-            # Fallback to environment variables or defaults
-            return {
-                'host': os.getenv('DB_HOST', 'localhost'),
-                'port': int(os.getenv('DB_PORT', 3306)),
-                'user': os.getenv('DB_USER', 'movie_admin'),
-                'password': os.getenv('DB_PASSWORD', '123456'),
-                'database': os.getenv('DB_NAME', 'movie_booking_dev'),
-                'charset': 'utf8mb4',
-                'autocommit': False
-            }
+        return {
+            'host': host,
+            'port': port,
+            'user': username,
+            'password': password,
+            'database': database,
+            'charset': 'utf8mb4',
+            'autocommit': False
+        }
     
     def _get_schema_path(self):
         """Get the path to schema.sql file."""
@@ -220,7 +206,7 @@ class DatabaseSetup:
         
         return statements
     
-    def setup(self, force=False):
+    def setup(self):
         """Execute complete database schema setup."""
         print("🚀 Starting Database Schema Setup (DDL-First Approach)")
         print("=" * 60)
@@ -235,9 +221,8 @@ class DatabaseSetup:
             connection.autocommit = False  # Use transactions
             cursor = connection.cursor()
             
-            # Step 3: Clean existing objects if force is True
-            if force:
-                self._drop_existing_objects(cursor)
+            # Step 3: Clean existing objects
+            self._drop_existing_objects(cursor)
             
             # Step 4: Execute schema
             self._execute_schema(cursor)
@@ -277,47 +262,20 @@ class DatabaseSetup:
 
 
 def main():
-    """Main function with command line argument parsing."""
-    parser = argparse.ArgumentParser(
-        description="Movie Booking Database Schema Setup (DDL-First)",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  python setup.py                # Setup schema
-  python setup.py --force        # Force clean setup (drops existing objects)
-  
-This script creates the database schema ONLY. Use seed_data.py for sample data.
-        """
-    )
-    
-    parser.add_argument(
-        '--force', 
-        action='store_true',
-        help='Force clean setup (drops all existing database objects)'
-    )
-    
-    parser.add_argument(
-        '--config',
-        help='Path to custom config file (optional)'
-    )
-    
-    args = parser.parse_args()
-    
+    """Main function to run database setup."""
     try:
-        # Initialize setup
+        # Initialize and run setup
         setup = DatabaseSetup()
-        
-        # Run setup
-        success = setup.setup(force=args.force)
+        success = setup.setup()
         
         # Exit with appropriate code
         sys.exit(0 if success else 1)
         
     except KeyboardInterrupt:
-        print("\nSetup interrupted by user")
+        print("\n⏹️  Setup interrupted by user")
         sys.exit(1)
     except Exception as err:
-        print(f"\nUnexpected error: {err}")
+        print(f"\n💥 Unexpected error: {err}")
         sys.exit(1)
 
 
