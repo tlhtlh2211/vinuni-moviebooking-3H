@@ -50,7 +50,7 @@ System functions:
 - `movies`: title, metadata, state (now‑showing, upcoming)
 - `showtimes`: a movie playing in a specific cinema at a start/end time
 - `users`: login credentials and roles (admin, customer).
-- `reservations`: a user’s booking for one showtime (total payment, number of tickets, discounts, payment ref)
+- `reservations`: a user's booking for one showtime (total payment, number of tickets, discounts, payment ref)
 - `tickets`: seat‑level records linked to a reservation
 - `payments`: charge details and status for a reservation
 
@@ -91,4 +91,53 @@ System functions:
 - Final testing and bug fixes  
 - Optimize database queries and indexes (where needed)  
 - Prepare and submit final report and project presentation  
+
+## Setup Instructions
+
+### Database Setup
+
+```bash
+# Navigate
+cd flask/db
+
+# Install Python dependencies
+pip install mysql-connector-python pymysql
+
+# 1. Setup database schema
+python setup.py
+
+# 2. Add sample data
+python seed_data.py
+
+# Optional: Add test-specific data
+python seed_data.py
+
+# Verify database creation
+mysql -u root -p -e "SHOW DATABASES; USE movie_booking; SHOW TABLES;"
+```
+
+### Frontend Setup
+
+```bash
+cd movie-ui
+npm install
+npm run dev
+```
+
+### Backend Setup
+
+```bash
+# Navigate to flask directory
+cd flask
+
+# Install Python dependencies
+pip install flask flask-cors flask-sqlalchemy pymysql mysql-connector-python
+
+# Generate/regenerate SQLAlchemy models from database
+pip install sqlacodegen
+sqlacodegen mysql+pymysql://root:12345678@localhost:3306/movie_booking > models.py
+
+# Run the Flask application
+python app.py
+```
 
