@@ -3,6 +3,8 @@ from models import Reservations, Tickets, SeatLocks, Seats, Showtimes  # Updated
 from serializers import ModelSerializer
 from extensions import db
 from datetime import datetime, timedelta
+from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 reservations_bp = Blueprint('reservations', __name__)
 
@@ -13,16 +15,20 @@ def get_reservations():
     if not user_id:
         return jsonify({'error': 'User ID is required'}), 400
     
-    reservations = Reservations.query.filter_by(user_id=user_id).all()
+    reservations = db.session.execute(
+        select(Reservations).where(Reservations.user_id == user_id)
+    ).scalars().all()
     result = []
     
     for reservation in reservations:
         res_dict = ModelSerializer.serialize_reservations(reservation)
         # Get tickets for this reservation
-        tickets = Tickets.query.filter_by(reservation_id=reservation.reservation_id).all()
+        tickets = db.session.execute(
+            select(Tickets).where(Tickets.reservation_id == reservation.reservation_id)
+        ).scalars().all()
         res_dict['tickets'] = ModelSerializer.serialize_tickets_list(tickets)
         # Get showtime details
-        showtime = Showtimes.query.get(reservation.showtime_id)
+        showtime = db.session.get(Showtimes, reservation.showtime_id)
         if showtime:
             res_dict['showtime'] = ModelSerializer.serialize_showtimes(showtime)
         result.append(res_dict)
@@ -44,16 +50,20 @@ def create_reservation():
     seat_ids = data['seats']
     
     # Verify showtime exists
-    showtime = Showtimes.query.get_or_404(showtime_id)
+    showtime = db.session.get(Showtimes, showtime_id)
+    if not showtime:
+        return jsonify({'error': 'Showtime not found'}), 404
     
     # Check if all seats are locked by this user
     current_time = datetime.utcnow()
     for seat_id in seat_ids:
-        lock = SeatLocks.query.filter_by(
-            showtime_id=showtime_id,
-            seat_id=seat_id,
-            user_id=user_id
-        ).first()
+        lock = db.session.execute(
+            select(SeatLocks).where(
+                SeatLocks.showtime_id == showtime_id,
+                SeatLocks.seat_id == seat_id,
+                SeatLocks.user_id == user_id
+            )
+        ).scalar_one_or_none()
         
         if not lock or lock.expires_at <= current_time:
             return jsonify({'error': f'Seat {seat_id} is not locked by this user or lock has expired'}), 400
@@ -76,7 +86,7 @@ def create_reservation():
     tickets = []
     for seat_id in seat_ids:
         # Get seat details to determine price
-        seat = Seats.query.get(seat_id)
+        seat = db.session.get(Seats, seat_id)
         
         # Calculate price based on seat class
         base_price = 10.00  # Standard price
@@ -95,11 +105,13 @@ def create_reservation():
     
     # Remove the locks as they're now part of a reservation
     for seat_id in seat_ids:
-        lock = SeatLocks.query.filter_by(
-            showtime_id=showtime_id,
-            seat_id=seat_id,
-            user_id=user_id
-        ).first()
+        lock = db.session.execute(
+            select(SeatLocks).where(
+                SeatLocks.showtime_id == showtime_id,
+                SeatLocks.seat_id == seat_id,
+                SeatLocks.user_id == user_id
+            )
+        ).scalar_one_or_none()
         
         if lock:
             db.session.delete(lock)
@@ -114,7 +126,9 @@ def create_reservation():
 
 @reservations_bp.route('/<int:reservation_id>/confirm', methods=['POST'])
 def confirm_reservation(reservation_id):
-    reservation = Reservations.query.get_or_404(reservation_id)
+    reservation = db.session.get(Reservations, reservation_id)
+    if not reservation:
+        return jsonify({'error': 'Reservation not found'}), 404
     
     # Check if reservation is still valid
     current_time = datetime.utcnow()
@@ -132,7 +146,9 @@ def confirm_reservation(reservation_id):
 
 @reservations_bp.route('/<int:reservation_id>/cancel', methods=['POST'])
 def cancel_reservation(reservation_id):
-    reservation = Reservations.query.get_or_404(reservation_id)
+    reservation = db.session.get(Reservations, reservation_id)
+    if not reservation:
+        return jsonify({'error': 'Reservation not found'}), 404
     
     if reservation.status == 'cancelled':
         return jsonify({'error': 'Reservation is already cancelled'}), 400
