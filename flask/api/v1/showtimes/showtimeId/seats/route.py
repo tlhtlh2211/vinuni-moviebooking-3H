@@ -1,6 +1,9 @@
 from flask import Blueprint, request, jsonify
-from models import db, Seat, SeatLock, Showtime, Ticket, Reservation
+from models import Seats, SeatLocks, Showtimes, Tickets, Reservations  # Updated to DDL-first models
+from serializers import ModelSerializer
+from extensions import db
 from datetime import datetime, timedelta
+from sqlalchemy import select
 import logging
 
 # Configure logging
@@ -14,33 +17,41 @@ def get_seats(showtime_id):
     logger.info(f"GET request received for showtime_id: {showtime_id}")
     try:
         # First check if the showtime exists
-        showtime = Showtime.query.get_or_404(showtime_id)
+        showtime = db.session.get(Showtimes, showtime_id)
+        if not showtime:
+            return jsonify({'error': 'Showtime not found'}), 404
         logger.debug(f"Showtime found: {showtime}")
         
         # Get all seats for the screen
-        seats = Seat.query.filter_by(screen_id=showtime.screen_id).all()
+        seats = db.session.execute(
+            select(Seats).where(Seats.screen_id == showtime.screen_id)
+        ).scalars().all()
         logger.debug(f"Found {len(seats)} seats for this showtime")
         
         # Get all locked seats for this showtime
         current_time = datetime.utcnow()
-        locks = SeatLock.query.filter(
-            SeatLock.showtime_id == showtime_id,
-            SeatLock.expires_at > current_time
-        ).all()
+        locks = db.session.execute(
+            select(SeatLocks).where(
+                SeatLocks.showtime_id == showtime_id,
+                SeatLocks.expires_at > current_time
+            )
+        ).scalars().all()
         locked_seat_ids = {lock.seat_id for lock in locks}
         logger.debug(f"Found {len(locked_seat_ids)} locked seats")
         
         # Get all sold seats (tickets) for this showtime
-        sold_seats = Ticket.query.join(Reservation).filter(
-            Reservation.showtime_id == showtime_id,
-            Reservation.status == 'confirmed'
-        ).all()
+        sold_seats = db.session.execute(
+            select(Tickets).join(Reservations).where(
+                Reservations.showtime_id == showtime_id,
+                Reservations.status == 'confirmed'
+            )
+        ).scalars().all()
         sold_seat_ids = {ticket.seat_id for ticket in sold_seats}
         logger.debug(f"Found {len(sold_seat_ids)} sold seats")
         
         result = []
         for seat in seats:
-            seat_dict = seat.to_dict()
+            seat_dict = ModelSerializer.serialize_seats(seat)
             seat_dict.update({
                 'status': 'sold' if seat.seat_id in sold_seat_ids else 
                           'locked' if seat.seat_id in locked_seat_ids else 'available'
@@ -61,30 +72,39 @@ def get_seats(showtime_id):
 @seats_bp.route('/<int:showtime_id>/seats/<int:seat_id>/lock', methods=['POST'])
 def lock_seat(showtime_id, seat_id):
     # Check if showtime and seat exist
-    showtime = Showtime.query.get_or_404(showtime_id)
-    seat = Seat.query.get_or_404(seat_id)
+    showtime = db.session.get(Showtimes, showtime_id)
+    if not showtime:
+        return jsonify({'error': 'Showtime not found'}), 404
+    
+    seat = db.session.get(Seats, seat_id)
+    if not seat:
+        return jsonify({'error': 'Seat not found'}), 404
     
     # Check if seat belongs to the showtime's screen
     if seat.screen_id != showtime.screen_id:
         return jsonify({'error': 'Seat does not belong to the showtime screen'}), 400
     
     # Check if the seat is already sold
-    sold = Ticket.query.join(Reservation).filter(
-        Reservation.showtime_id == showtime_id,
-        Ticket.seat_id == seat_id,
-        Reservation.status == 'confirmed'
-    ).first()
+    sold = db.session.execute(
+        select(Tickets).join(Reservations).where(
+            Reservations.showtime_id == showtime_id,
+            Tickets.seat_id == seat_id,
+            Reservations.status == 'confirmed'
+        )
+    ).scalar_one_or_none()
     
     if sold:
         return jsonify({'error': 'Seat already sold'}), 400
     
     # Check if the seat is already locked by someone else
     current_time = datetime.utcnow()
-    lock = SeatLock.query.filter(
-        SeatLock.showtime_id == showtime_id,
-        SeatLock.seat_id == seat_id,
-        SeatLock.expires_at > current_time
-    ).first()
+    lock = db.session.execute(
+        select(SeatLocks).where(
+            SeatLocks.showtime_id == showtime_id,
+            SeatLocks.seat_id == seat_id,
+            SeatLocks.expires_at > current_time
+        )
+    ).scalar_one_or_none()
     
     data = request.json
     user_id = data.get('user_id')
@@ -98,7 +118,7 @@ def lock_seat(showtime_id, seat_id):
     if lock:
         lock.expires_at = expiry_time
     else:
-        lock = SeatLock(
+        lock = SeatLocks(
             showtime_id=showtime_id,
             seat_id=seat_id,
             user_id=user_id,
@@ -117,11 +137,13 @@ def unlock_seat(showtime_id, seat_id):
     user_id = data.get('user_id')
     
     # Check if the lock exists and belongs to the user
-    lock = SeatLock.query.filter_by(
-        showtime_id=showtime_id,
-        seat_id=seat_id,
-        user_id=user_id
-    ).first()
+    lock = db.session.execute(
+        select(SeatLocks).where(
+            SeatLocks.showtime_id == showtime_id,
+            SeatLocks.seat_id == seat_id,
+            SeatLocks.user_id == user_id
+        )
+    ).scalar_one_or_none()
     
     if not lock:
         return jsonify({'error': 'No active lock found for this user'}), 404

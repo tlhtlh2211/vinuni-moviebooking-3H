@@ -13,14 +13,12 @@ export enum ReservationStatus {
 export enum SeatClass {
   STANDARD = "standard",
   PREMIUM = "premium",
-  VIP = "vip",
 }
 
 export enum ScreenFormat {
-  STANDARD = "standard",
-  IMAX = "imax",
-  _3D = "3d",
-  _4DX = "4dx",
+  _2D = "2D",
+  _3D = "3D",
+  IMAX = "IMAX",
 }
 
 export enum MovieRating {

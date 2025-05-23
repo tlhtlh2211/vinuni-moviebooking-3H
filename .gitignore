@@ -1,0 +1,8 @@
+/plugins
+/flask/__pycache__
+__pycache__/
+*.py[cod]
+*$py.class
+metabase.db.trace.db
+metabase.db.mv.db
+metabase.jar

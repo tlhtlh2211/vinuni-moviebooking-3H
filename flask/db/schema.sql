@@ -44,6 +44,11 @@ CREATE TABLE movies (
     rating ENUM('G', 'PG', 'PG-13', 'R', 'NC-17') NOT NULL DEFAULT 'G',
     release_date DATE,
     status ENUM('open','closed') NOT NULL DEFAULT 'open',
+    description TEXT,
+    director VARCHAR(100),
+    cast TEXT,
+    genre VARCHAR(50),
+    poster_url VARCHAR(255),
     PRIMARY KEY (movie_id),
     CONSTRAINT chk_movie_positive_duration CHECK (duration > 0)
 );

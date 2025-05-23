@@ -1,7 +1,9 @@
 from flask import Blueprint, request, jsonify
-from models import User
+from models import Users  # Changed from User to Users (DDL-first model)
+from serializers import ModelSerializer
 from extensions import db
 from werkzeug.security import check_password_hash
+from sqlalchemy import select
 
 login_bp = Blueprint('login', __name__)
 
@@ -13,7 +15,9 @@ def login():
     if not data or not data.get('email') or not data.get('password'):
         return jsonify({'error': 'Email and password are required'}), 400
     
-    user = User.query.filter_by(email=data['email']).first()
+    user = db.session.execute(
+        select(Users).where(Users.email == data['email'])
+    ).scalar_one_or_none()
     
     if not user or user.role != 'customer':
         return jsonify({'error': 'Invalid email or password'}), 401
@@ -21,11 +25,7 @@ def login():
     if check_password_hash(user.password_hash, data['password']):
         return jsonify({
             'status': 'success',
-            'data': {
-                'user_id': user.user_id,
-                'email': user.email,
-                'role': user.role
-            }
+            'data': ModelSerializer.serialize_users(user)
         }), 200
     
     return jsonify({'error': 'Invalid email or password'}), 401

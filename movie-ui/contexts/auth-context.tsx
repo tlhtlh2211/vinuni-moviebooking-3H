@@ -25,15 +25,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isClient, setIsClient] = useState(false)
 
   // Check for existing session on mount
   useEffect(() => {
-    const storedUser = localStorage.getItem("user")
-    const storedToken = localStorage.getItem("token")
+    setIsClient(true)
+    
+    // Only access localStorage after component mounts on client
+    if (typeof window !== 'undefined') {
+      const storedUser = localStorage.getItem("user")
+      const storedToken = localStorage.getItem("token")
 
-    if (storedUser && storedToken) {
-      setUser(JSON.parse(storedUser))
-      setToken(storedToken)
+      if (storedUser && storedToken) {
+        setUser(JSON.parse(storedUser))
+        setToken(storedToken)
+      }
     }
   }, [])
 
@@ -63,9 +69,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(data.user)
       setToken(data.token)
 
-      // Store in localStorage
-      localStorage.setItem("user", JSON.stringify(data.user))
-      localStorage.setItem("token", data.token)
+      // Store in localStorage only on client
+      if (typeof window !== 'undefined') {
+        localStorage.setItem("user", JSON.stringify(data.user))
+        localStorage.setItem("token", data.token)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "An unknown error occurred")
     } finally {
@@ -76,8 +84,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     setUser(null)
     setToken(null)
-    localStorage.removeItem("user")
-    localStorage.removeItem("token")
+    
+    // Remove from localStorage only on client
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem("user")
+      localStorage.removeItem("token")
+    }
   }
 
   return (

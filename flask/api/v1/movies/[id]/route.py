@@ -1,16 +1,23 @@
 from flask import Blueprint, jsonify, request
-from models import Movie, db
+from models import Movies  # Updated to DDL-first model
+from serializers import ModelSerializer
+from extensions import db
 
 movie_detail_bp = Blueprint('movie_detail_bp', __name__)
 
 @movie_detail_bp.route('/<int:movie_id>', methods=['GET'])
 def get_movie(movie_id):
-    movie = Movie.query.get_or_404(movie_id)
-    return jsonify(movie.to_dict())
+    movie = db.session.get(Movies, movie_id)
+    if not movie:
+        return jsonify({'error': 'Movie not found'}), 404
+    return jsonify(ModelSerializer.serialize_movies(movie))
 
 @movie_detail_bp.route('/<int:movie_id>', methods=['PUT'])
 def update_movie(movie_id):
-    movie = Movie.query.get_or_404(movie_id)
+    movie = db.session.get(Movies, movie_id)
+    if not movie:
+        return jsonify({'error': 'Movie not found'}), 404
+        
     data = request.json
     
     if 'title' in data:
@@ -25,11 +32,14 @@ def update_movie(movie_id):
         movie.status = data['status']
         
     db.session.commit()
-    return jsonify(movie.to_dict())
+    return jsonify(ModelSerializer.serialize_movies(movie))
 
 @movie_detail_bp.route('/<int:movie_id>', methods=['DELETE'])
 def delete_movie(movie_id):
-    movie = Movie.query.get_or_404(movie_id)
+    movie = db.session.get(Movies, movie_id)
+    if not movie:
+        return jsonify({'error': 'Movie not found'}), 404
+        
     db.session.delete(movie)
     db.session.commit()
     return jsonify({'message': 'Movie deleted successfully'}) 
