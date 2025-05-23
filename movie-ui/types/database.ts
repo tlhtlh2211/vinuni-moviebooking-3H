@@ -56,6 +56,7 @@ export interface Ticket {
   ticket_id: number
   reservation_id: number
   seat_id: number
+  seat_label?: string
   price: number
   issued_at: string
 }

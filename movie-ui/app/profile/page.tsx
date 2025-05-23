@@ -367,7 +367,7 @@ export default function ProfilePage() {
                           <div className="mb-4">
                             <div className="font-mono font-bold">SEATS:</div>
                             <div className="font-mono">
-                              {booking.tickets.map((ticket) => `A${ticket.seat_id}`).join(", ")}
+                              {booking.tickets.map((ticket) => ticket.seat_label).join(", ")}
                             </div>
                           </div>
 
@@ -476,7 +476,7 @@ export default function ProfilePage() {
                           <div className="mb-4">
                             <div className="font-mono font-bold">SEATS:</div>
                             <div className="font-mono">
-                              {booking.tickets.map((ticket) => `A${ticket.seat_id}`).join(", ")}
+                              {booking.tickets.map((ticket) => ticket.seat_label).join(", ")}
                             </div>
                           </div>
 

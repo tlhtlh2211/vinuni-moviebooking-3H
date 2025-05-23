@@ -184,15 +184,15 @@ export default function MovieDetailsPage({ params }: { params: { showtimeId: str
         // Generate mock seats if no data is returned
         const seatsData = data.data || [];
         if (seatsData.length === 0) {
-          // Generate a grid of 8x8 seats
+          // Generate a grid of 8x12 seats to match the database structure
           const mockSeats: SeatWithStatus[] = [];
           for (let row = 0; row < 8; row++) {
-            for (let col = 0; col < 8; col++) {
-              const seatId = row * 8 + col + 1;
+            for (let col = 0; col < 12; col++) {
+              const seatId = row * 12 + col + 1; // Match database structure: 12 columns per row
               mockSeats.push({
                 seat_id: seatId,
                 screen_id: 1,
-                seat_class: col < 2 ? SeatClass.STANDARD : SeatClass.PREMIUM,
+                seat_class: row >= 5 ? SeatClass.PREMIUM : SeatClass.STANDARD, // F-H rows are premium
                 seat_label: `${String.fromCharCode(65 + row)}${col + 1}`,
                 row_num: row,
                 col_num: col,
@@ -339,12 +339,11 @@ export default function MovieDetailsPage({ params }: { params: { showtimeId: str
         const data = await response.json()
         
         // Update the bookingData state with a structure that matches what the UI expects
-        // The API might return { reservation_id, status, etc. } directly
-        // But our UI expects { reservation: { reservation_id, status }, tickets: [] }
+        // Use the actual status from the API response instead of hardcoding "confirmed"
         setBookingData({
           reservation: {
             reservation_id: data.reservation_id || "R-" + Math.floor(Math.random() * 10000),
-            status: data.status || "confirmed",
+            status: data.status, // Use actual status from API
             // Add other reservation fields...
           },
           tickets: data.tickets || selectedSeats.map(seatId => {
@@ -651,7 +650,7 @@ export default function MovieDetailsPage({ params }: { params: { showtimeId: str
               <div className="mb-8">
                 <div className="w-full bg-black p-2 text-center text-white font-mono mb-8">SCREEN</div>
 
-                <div className="grid grid-cols-8 gap-4 max-w-3xl mx-auto mb-8">
+                <div className="grid grid-cols-12 gap-4 max-w-4xl mx-auto mb-8">
                   {seats.map((seat) => (
                     <motion.div
                       key={seat.seat_id}
