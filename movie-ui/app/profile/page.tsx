@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Film, LogOut, Calendar, Clock, ArrowLeft, AlertCircle, CheckCircle2 } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
+import { useIsClient } from "@/app/utils/useIsClient"
 import { motion } from "framer-motion"
 import type { Reservation, Ticket as TicketType } from "@/types/database"
 import { ReservationStatus } from "@/types/database"
@@ -29,15 +30,16 @@ type BookingWithDetails = {
 export default function ProfilePage() {
   const router = useRouter()
   const { user, logout } = useAuth()
+  const isClient = useIsClient()
   const [bookings, setBookings] = useState<BookingWithDetails[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
-  // Redirect if not logged in
+  // Redirect if not logged in - only after client hydration
   useEffect(() => {
-    if (!user) {
+    if (isClient && !user) {
       router.push("/login?redirect=/profile")
     }
-  }, [user, router])
+  }, [user, router, isClient])
 
   // Fetch user bookings
   useEffect(() => {
@@ -193,8 +195,19 @@ export default function ProfilePage() {
     router.push("/")
   }
 
+  // Prevent rendering until client has loaded to avoid hydration mismatches
+  if (!isClient) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="bg-black text-white p-8 border-8 border-yellow-400 font-mono text-xl">
+          LOADING...
+        </div>
+      </div>
+    )
+  }
+
   if (!user) {
-    return null // Or a loading spinner
+    return null // This will trigger the redirect useEffect
   }
   
   // Separate bookings into upcoming and past

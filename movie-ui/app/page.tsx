@@ -7,30 +7,44 @@ import { Button } from "@/components/ui/button"
 import { Film, Ticket, Star, Clock, User } from "lucide-react"
 import { motion } from "framer-motion"
 import { useAuth } from "@/contexts/auth-context"
+import { useIsClient } from "@/app/utils/useIsClient"
 import type { Movie } from "@/types/database"
 import Image from "next/image"
 
 export default function Home() {
   const router = useRouter()
   const { user } = useAuth()
+  const isClient = useIsClient()
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
   const [isLoaded, setIsLoaded] = useState(false)
   const [featuredMovies, setFeaturedMovies] = useState<Movie[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [windowSize, setWindowSize] = useState({ width: 0, height: 0 })
 
+  // Client-side only effect for mouse tracking and window size
   useEffect(() => {
+    if (!isClient) return
+
     const handleMouseMove = (e: MouseEvent) => {
       setMousePosition({ x: e.clientX, y: e.clientY })
     }
 
+    const handleResize = () => {
+      setWindowSize({ width: window.innerWidth, height: window.innerHeight })
+    }
+
+    // Set initial window size and set up event listeners
+    setWindowSize({ width: window.innerWidth, height: window.innerHeight })
     window.addEventListener("mousemove", handleMouseMove)
+    window.addEventListener("resize", handleResize)
     setIsLoaded(true)
 
     return () => {
       window.removeEventListener("mousemove", handleMouseMove)
+      window.removeEventListener("resize", handleResize)
     }
-  }, [])
+  }, [isClient])
 
   // Fetch movies from API
   useEffect(() => {
@@ -64,9 +78,11 @@ export default function Home() {
 
   // Calculate subtle movement based on mouse position
   const calcMovement = (factor = 1) => {
-    if (!isLoaded) return { x: 0, y: 0 }
-    const x = ((mousePosition.x - window.innerWidth / 2) / 50) * factor
-    const y = ((mousePosition.y - window.innerHeight / 2) / 50) * factor
+    if (!isClient || !isLoaded || windowSize.width === 0 || windowSize.height === 0) {
+      return { x: 0, y: 0 }
+    }
+    const x = ((mousePosition.x - windowSize.width / 2) / 50) * factor
+    const y = ((mousePosition.y - windowSize.height / 2) / 50) * factor
     return { x, y }
   }
 
