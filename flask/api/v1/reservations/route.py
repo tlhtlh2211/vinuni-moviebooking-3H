@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
-from models import Reservation, Ticket, SeatLock, Seat, Showtime
+from models import Reservations, Tickets, SeatLocks, Seats, Showtimes  # Updated to DDL-first models
+from serializers import ModelSerializer
 from extensions import db
 from datetime import datetime, timedelta
 
@@ -12,18 +13,18 @@ def get_reservations():
     if not user_id:
         return jsonify({'error': 'User ID is required'}), 400
     
-    reservations = Reservation.query.filter_by(user_id=user_id).all()
+    reservations = Reservations.query.filter_by(user_id=user_id).all()
     result = []
     
     for reservation in reservations:
-        res_dict = reservation.to_dict()
+        res_dict = ModelSerializer.serialize_reservations(reservation)
         # Get tickets for this reservation
-        tickets = Ticket.query.filter_by(reservation_id=reservation.reservation_id).all()
-        res_dict['tickets'] = [ticket.to_dict() for ticket in tickets]
+        tickets = Tickets.query.filter_by(reservation_id=reservation.reservation_id).all()
+        res_dict['tickets'] = ModelSerializer.serialize_tickets_list(tickets)
         # Get showtime details
-        showtime = Showtime.query.get(reservation.showtime_id)
+        showtime = Showtimes.query.get(reservation.showtime_id)
         if showtime:
-            res_dict['showtime'] = showtime.to_dict()
+            res_dict['showtime'] = ModelSerializer.serialize_showtimes(showtime)
         result.append(res_dict)
     
     return jsonify(result)
@@ -43,12 +44,12 @@ def create_reservation():
     seat_ids = data['seats']
     
     # Verify showtime exists
-    showtime = Showtime.query.get_or_404(showtime_id)
+    showtime = Showtimes.query.get_or_404(showtime_id)
     
     # Check if all seats are locked by this user
     current_time = datetime.utcnow()
     for seat_id in seat_ids:
-        lock = SeatLock.query.filter_by(
+        lock = SeatLocks.query.filter_by(
             showtime_id=showtime_id,
             seat_id=seat_id,
             user_id=user_id
@@ -60,7 +61,7 @@ def create_reservation():
     # Create reservation
     expires_at = current_time + timedelta(minutes=30)
     
-    reservation = Reservation(
+    reservation = Reservations(
         user_id=user_id,
         showtime_id=showtime_id,
         status='pending',
@@ -75,14 +76,14 @@ def create_reservation():
     tickets = []
     for seat_id in seat_ids:
         # Get seat details to determine price
-        seat = Seat.query.get(seat_id)
+        seat = Seats.query.get(seat_id)
         
         # Calculate price based on seat class
         base_price = 10.00  # Standard price
         if seat.seat_class == 'premium':
             base_price = 15.00
             
-        ticket = Ticket(
+        ticket = Tickets(
             reservation_id=reservation.reservation_id,
             seat_id=seat_id,
             price=base_price,
@@ -94,7 +95,7 @@ def create_reservation():
     
     # Remove the locks as they're now part of a reservation
     for seat_id in seat_ids:
-        lock = SeatLock.query.filter_by(
+        lock = SeatLocks.query.filter_by(
             showtime_id=showtime_id,
             seat_id=seat_id,
             user_id=user_id
@@ -106,14 +107,14 @@ def create_reservation():
     db.session.commit()
     
     # Prepare response
-    result = reservation.to_dict()
-    result['tickets'] = [ticket.to_dict() for ticket in tickets]
+    result = ModelSerializer.serialize_reservations(reservation)
+    result['tickets'] = ModelSerializer.serialize_tickets_list(tickets)
     
     return jsonify(result), 201
 
 @reservations_bp.route('/<int:reservation_id>/confirm', methods=['POST'])
 def confirm_reservation(reservation_id):
-    reservation = Reservation.query.get_or_404(reservation_id)
+    reservation = Reservations.query.get_or_404(reservation_id)
     
     # Check if reservation is still valid
     current_time = datetime.utcnow()
@@ -127,11 +128,11 @@ def confirm_reservation(reservation_id):
     reservation.status = 'confirmed'
     db.session.commit()
     
-    return jsonify({'message': 'Reservation confirmed successfully', 'reservation': reservation.to_dict()})
+    return jsonify({'message': 'Reservation confirmed successfully', 'reservation': ModelSerializer.serialize_reservations(reservation)})
 
 @reservations_bp.route('/<int:reservation_id>/cancel', methods=['POST'])
 def cancel_reservation(reservation_id):
-    reservation = Reservation.query.get_or_404(reservation_id)
+    reservation = Reservations.query.get_or_404(reservation_id)
     
     if reservation.status == 'cancelled':
         return jsonify({'error': 'Reservation is already cancelled'}), 400
@@ -140,4 +141,4 @@ def cancel_reservation(reservation_id):
     reservation.status = 'cancelled'
     db.session.commit()
     
-    return jsonify({'message': 'Reservation cancelled successfully', 'reservation': reservation.to_dict()})
+    return jsonify({'message': 'Reservation cancelled successfully', 'reservation': ModelSerializer.serialize_reservations(reservation)})

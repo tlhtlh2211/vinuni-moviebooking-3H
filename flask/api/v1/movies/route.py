@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request
-from models import Movie, Showtime, Screen, Cinema
+from models import Movies, Showtimes, Screens, Cinemas  # Updated to DDL-first models
+from serializers import ModelSerializer
 from extensions import db
 from datetime import datetime
 
@@ -8,43 +9,34 @@ movies_bp = Blueprint('movies', __name__)
 @movies_bp.route('/', methods=['GET'])
 def get_all_movies():
     """Get all movies"""
-    movies = Movie.query.all()
+    movies = Movies.query.all()
     return jsonify({
         'status': 'success',
-        'data': [movie.to_dict() for movie in movies]
+        'data': ModelSerializer.serialize_movies_list(movies)
     }), 200
 
 @movies_bp.route('/<int:movie_id>', methods=['GET'])
 def get_movie(movie_id):
     """Get a specific movie by ID"""
-    movie = Movie.query.get_or_404(movie_id)
-    movie_dict = movie.to_dict()
+    movie = Movies.query.get_or_404(movie_id)
+    movie_dict = ModelSerializer.serialize_movies(movie)
     
     # Get showtimes for this movie
-    showtimes = Showtime.query.filter_by(movie_id=movie_id).all()
+    showtimes = Showtimes.query.filter_by(movie_id=movie_id).all()
     showtimes_list = []
     
     for showtime in showtimes:
-        showtime_dict = showtime.to_dict()
+        showtime_dict = ModelSerializer.serialize_showtimes(showtime)
         
         # Get screen details
-        screen = Screen.query.get(showtime.screen_id)
+        screen = Screens.query.get(showtime.screen_id)
         if screen:
-            showtime_dict['screen'] = {
-                'screen_id': screen.screen_id,
-                'name': screen.name,
-                'screen_format': screen.screen_format
-            }
+            showtime_dict['screen'] = ModelSerializer.serialize_screens(screen)
             
             # Get cinema details
-            cinema = Cinema.query.get(screen.cinema_id)
+            cinema = Cinemas.query.get(screen.cinema_id)
             if cinema:
-                showtime_dict['cinema'] = {
-                    'cinema_id': cinema.cinema_id,
-                    'name': cinema.name,
-                    'address': cinema.address,
-                    'city': cinema.city
-                }
+                showtime_dict['cinema'] = ModelSerializer.serialize_cinemas(cinema)
         
         showtimes_list.append(showtime_dict)
     
@@ -59,33 +51,24 @@ def get_movie(movie_id):
 def get_movie_showtimes(movie_id):
     """Get all showtimes for a specific movie"""
     # Check if movie exists
-    movie = Movie.query.get_or_404(movie_id)
+    movie = Movies.query.get_or_404(movie_id)
     
     # Get showtimes for this movie
-    showtimes = Showtime.query.filter_by(movie_id=movie_id).all()
+    showtimes = Showtimes.query.filter_by(movie_id=movie_id).all()
     showtimes_list = []
     
     for showtime in showtimes:
-        showtime_dict = showtime.to_dict()
+        showtime_dict = ModelSerializer.serialize_showtimes(showtime)
         
         # Get screen details
-        screen = Screen.query.get(showtime.screen_id)
+        screen = Screens.query.get(showtime.screen_id)
         if screen:
-            showtime_dict['screen'] = {
-                'screen_id': screen.screen_id,
-                'name': screen.name,
-                'screen_format': screen.screen_format
-            }
+            showtime_dict['screen'] = ModelSerializer.serialize_screens(screen)
             
             # Get cinema details
-            cinema = Cinema.query.get(screen.cinema_id)
+            cinema = Cinemas.query.get(screen.cinema_id)
             if cinema:
-                showtime_dict['cinema'] = {
-                    'cinema_id': cinema.cinema_id,
-                    'name': cinema.name,
-                    'address': cinema.address,
-                    'city': cinema.city
-                }
+                showtime_dict['cinema'] = ModelSerializer.serialize_cinemas(cinema)
         
         showtimes_list.append(showtime_dict)
     
@@ -112,7 +95,7 @@ def create_movie():
         except ValueError:
             return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
     
-    movie = Movie(
+    movie = Movies(
         title=data['title'],
         duration=data['duration'],
         rating=data['rating'],
@@ -128,4 +111,4 @@ def create_movie():
     db.session.add(movie)
     db.session.commit()
     
-    return jsonify(movie.to_dict()), 201
+    return jsonify(ModelSerializer.serialize_movies(movie)), 201

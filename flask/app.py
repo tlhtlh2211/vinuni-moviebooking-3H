@@ -2,6 +2,8 @@ from flask import Flask
 from flask_cors import CORS
 from config import Config
 from extensions import db
+# Import all DDL-first models to ensure they're registered
+from models import Base, Users, Movies, Cinemas, Screens, Seats, Showtimes, Reservations, Tickets, SeatLocks
 import os, sys
 import pymysql
 
@@ -37,9 +39,10 @@ def create_app():
     from api.v1.reservations.route import reservations_bp
     app.register_blueprint(reservations_bp, url_prefix='/api/v1/reservations')
     
-    # Create database tables
+    # DDL-first database initialization
+    # Create database tables from DDL-generated models
     with app.app_context():
-        db.create_all()
+        Base.metadata.create_all(bind=db.engine)
 
     return app
 
