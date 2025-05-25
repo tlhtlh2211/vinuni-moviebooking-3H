@@ -138,8 +138,21 @@ def cancel_reservation(reservation_id):
     if reservation.status == 'cancelled':
         return jsonify({'error': 'Reservation is already cancelled'}), 400
     
-    # Update status to cancelled
-    reservation.status = 'cancelled'
-    db.session.commit()
-    
-    return jsonify({'message': 'Reservation cancelled successfully', 'reservation': ModelSerializer.serialize_reservations(reservation)})
+    try:
+        # Use stored procedure for proper cleanup
+        db.session.execute(
+            text("CALL sp_cancel_reservation(:reservation_id)"),
+            {'reservation_id': reservation_id}
+        )
+        db.session.commit()
+        
+        # Refresh the reservation object to get updated status
+        db.session.refresh(reservation)
+        
+        return jsonify({
+            'message': 'Reservation cancelled successfully', 
+            'reservation': ModelSerializer.serialize_reservations(reservation)
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400

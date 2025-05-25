@@ -373,21 +373,6 @@ WHERE
       t.ticket_id IS NULL -- not sold
   AND l.seat_id IS NULL; -- not locked
 
--- VIEW: Reservation totals
-CREATE OR REPLACE VIEW v_reservation_totals AS
-SELECT 
-    r.reservation_id,
-    r.user_id,
-    r.showtime_id,
-    r.status,
-    COALESCE(SUM(t.price), 0.00) AS total_amount
-FROM 
-    reservations r
-LEFT JOIN 
-    tickets t ON r.reservation_id = t.reservation_id
-GROUP BY 
-    r.reservation_id, r.user_id, r.showtime_id, r.status;
-
 -- VIEW: Active showtimes with details
 -- This view returns only future showtimes (with 30-minute buffer) for open movies
 -- Includes all necessary joins to minimize backend queries
