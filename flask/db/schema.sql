@@ -387,3 +387,36 @@ LEFT JOIN
     tickets t ON r.reservation_id = t.reservation_id
 GROUP BY 
     r.reservation_id, r.user_id, r.showtime_id, r.status;
+
+-- VIEW: Active showtimes with details
+-- This view returns only future showtimes (with 30-minute buffer) for open movies
+-- Includes all necessary joins to minimize backend queries
+CREATE OR REPLACE VIEW v_active_showtimes_details AS
+SELECT 
+    s.showtime_id,
+    s.movie_id,
+    s.screen_id,
+    s.start_time,
+    s.end_time,
+    m.title AS movie_title,
+    m.duration AS movie_duration,
+    m.rating AS movie_rating,
+    m.description AS movie_description,
+    m.director AS movie_director,
+    m.cast AS movie_cast,
+    m.genre AS movie_genre,
+    m.poster_url AS movie_poster_url,
+    m.release_date AS movie_release_date,
+    sc.name AS screen_name,
+    sc.screen_format,
+    c.cinema_id,
+    c.name AS cinema_name,
+    c.address AS cinema_address,
+    c.city AS cinema_city
+FROM showtimes s
+JOIN movies m ON m.movie_id = s.movie_id
+JOIN screens sc ON sc.screen_id = s.screen_id
+JOIN cinemas c ON c.cinema_id = sc.cinema_id
+WHERE s.start_time > DATE_ADD(NOW(), INTERVAL 30 MINUTE)
+  AND m.status = 'open'
+ORDER BY s.start_time;
