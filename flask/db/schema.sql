@@ -260,21 +260,6 @@ BEGIN
           SET MESSAGE_TEXT = 'Seat currently locked by another user';
     END IF;
 
-    /* 2d - verify all seats are locked by this user */
-    SELECT COUNT(*) INTO v_cnt
-      FROM JSON_TABLE(p_seat_ids, '$[*]' COLUMNS (seat_id INT PATH '$')) j
-      LEFT JOIN seat_locks l
-        ON l.seat_id = j.seat_id
-       AND l.showtime_id = p_showtime_id
-       AND l.user_id = p_user_id
-       AND l.expires_at > v_now
-     WHERE l.seat_id IS NULL;
-
-    IF v_cnt > 0 THEN
-        SIGNAL SQLSTATE '45000'
-          SET MESSAGE_TEXT = 'Seat is not locked by this user';
-    END IF;
-
     /* --------- 3. Insert the reservation (15-minute expiry) */
     INSERT INTO reservations
           (user_id, showtime_id, status, created_at, expires_at)
