@@ -213,6 +213,15 @@ BEGIN
           SET MESSAGE_TEXT = 'Showtime not found';
     END IF;
 
+    /* Lock the specific seats we're trying to reserve */
+    SELECT s.seat_id
+      FROM seats s
+      JOIN JSON_TABLE(p_seat_ids, '$[*]' COLUMNS (seat_id INT PATH '$')) j
+        ON j.seat_id = s.seat_id
+     WHERE s.screen_id = v_screen_id
+     ORDER BY s.seat_id  -- Consistent order to prevent deadlocks
+     FOR UPDATE;
+
     /* --------- 2. Validate the seat set */
 
     /* 2a – all seats belong to that screen */
