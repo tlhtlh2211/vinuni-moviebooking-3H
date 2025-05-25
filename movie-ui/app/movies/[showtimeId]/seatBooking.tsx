@@ -4,6 +4,12 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { lockSeat, createReservation } from '../../utils/seatHelpers';
 
+interface Seat {
+  seat_id: number;
+  seat_label: string;
+  status: 'available' | 'sold' | 'locked';
+}
+
 interface SeatBookingProps {
   showtime: {
     id: number;
@@ -15,7 +21,7 @@ interface SeatBookingProps {
 
 export default function SeatBooking({ showtime, userId }: SeatBookingProps) {
   const router = useRouter();
-  const [seats, setSeats] = useState([]);
+  const [seats, setSeats] = useState<Seat[]>([]);
   const [selectedSeats, setSelectedSeats] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const [seatLoading, setSeatLoading] = useState<{[key: number]: boolean}>({});
@@ -60,7 +66,7 @@ export default function SeatBooking({ showtime, userId }: SeatBookingProps) {
         
         // Update the seat status in the UI to show it's locked
         setSeats(prevSeats => 
-          prevSeats.map((seat: any) => 
+          prevSeats.map((seat) => 
             seat.seat_id === seatId ? { ...seat, status: 'locked' } : seat
           )
         );
@@ -121,7 +127,7 @@ export default function SeatBooking({ showtime, userId }: SeatBookingProps) {
       {error && <div className="error-message">{error}</div>}
       
       <div className="seat-map">
-        {seats.map((seat: any) => (
+        {seats.map((seat) => (
           <button
             key={seat.seat_id}
             className={`seat ${seat.status} ${selectedSeats.includes(seat.seat_id) ? 'selected' : ''} ${seatLoading[seat.seat_id] ? 'loading' : ''}`}
@@ -146,7 +152,7 @@ export default function SeatBooking({ showtime, userId }: SeatBookingProps) {
       <style jsx>{`
         .seat-map {
           display: grid;
-          grid-template-columns: repeat(10, 1fr);
+          grid-template-columns: repeat(12, 1fr);
           gap: 10px;
           margin: 20px 0;
         }

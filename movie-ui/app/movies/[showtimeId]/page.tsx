@@ -175,15 +175,20 @@ export default function MovieDetailsPage({ params }: { params: { showtimeId: str
       if (!selectedShowtime) return
 
       try {
-        const response = await fetch(`/api/v1/showtimes/${selectedShowtime}/seats`)
+        // Add timestamp to prevent caching
+        const timestamp = new Date().getTime();
+        const response = await fetch(`/api/v1/showtimes/${selectedShowtime}/seats?t=${timestamp}`, {
+          cache: 'no-store'
+        })
         if (!response.ok) {
           throw new Error("Failed to fetch seats")
         }
         const data = await response.json()
         
-        // Generate mock seats if no data is returned
+        // Check if we got real data from the backend
         const seatsData = data.data || [];
         if (seatsData.length === 0) {
+          // Generate mock seats if no data is returned
           // Generate a grid of 8x12 seats to match the database structure
           const mockSeats: SeatWithStatus[] = [];
           for (let row = 0; row < 8; row++) {
@@ -203,7 +208,18 @@ export default function MovieDetailsPage({ params }: { params: { showtimeId: str
           }
           setSeats(mockSeats);
         } else {
-          setSeats(seatsData);
+          // Convert backend data format to frontend format
+          const convertedSeats: SeatWithStatus[] = seatsData.map((seat: any) => ({
+            seat_id: seat.seat_id,
+            screen_id: seat.screen_id,
+            seat_class: seat.seat_class,
+            seat_label: seat.seat_label,
+            row_num: seat.row_num,
+            col_num: seat.col_num,
+            is_locked: seat.status === 'locked',
+            is_booked: seat.status === 'sold'
+          }));
+          setSeats(convertedSeats);
         }
       } catch (error) {
         console.error("Error fetching seats:", error)
@@ -245,7 +261,7 @@ export default function MovieDetailsPage({ params }: { params: { showtimeId: str
           // Remove from selected seats
           setSelectedSeats(selectedSeats.filter((id) => id !== seatId))
           
-          // Update the seat status in the UI
+          // Update the seat status in the UI to show it's available
           setSeats(prevSeats => 
             prevSeats.map(seat => 
               seat.seat_id === seatId ? { ...seat, is_locked: false } : seat
@@ -383,6 +399,7 @@ export default function MovieDetailsPage({ params }: { params: { showtimeId: str
     setStep("details")
     setSelectedShowtime(null)
     setSelectedSeats([])
+    setSeats([]) // Clear seats so they will be refetched when user comes back
   }
 
   if (isLoading) {

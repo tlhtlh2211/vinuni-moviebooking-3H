@@ -3,7 +3,12 @@ import { NextResponse } from 'next/server';
 // Function to log to the console and also return with data
 function logAndReturn(message: string, data: any, status: number = 200) {
   console.log(`[API DEBUG] ${message}`, data);
-  return NextResponse.json(data, { status });
+  const response = NextResponse.json(data, { status });
+  // Add cache control headers to prevent stale data
+  response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+  response.headers.set('Pragma', 'no-cache');
+  response.headers.set('Expires', '0');
+  return response;
 }
 
 // API Handler for GET /api/v1/showtimes/:showtimeId/seats
@@ -22,7 +27,9 @@ export async function GET(
     console.log(`Fetching from Flask API: ${apiUrl}`);
     
     // Forward the request to the Flask backend
-    const response = await fetch(apiUrl);
+    const response = await fetch(apiUrl, {
+      cache: 'no-store' // Prevent caching
+    });
     
     if (!response.ok) {
       console.error(`Flask API error: ${response.status} ${response.statusText}`);
