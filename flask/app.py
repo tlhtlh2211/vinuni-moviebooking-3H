@@ -26,6 +26,9 @@ def create_app():
     # Import and register blueprints
     from api.v1.auth.login.route import login_bp
     app.register_blueprint(login_bp, url_prefix='/api/v1/auth/login')
+    
+    from api.v1.auth.admin_login.route import admin_login_bp
+    app.register_blueprint(admin_login_bp, url_prefix='/api/v1/auth/admin-login')
 
     from api.v1.movies.route import movies_bp
     app.register_blueprint(movies_bp, url_prefix='/api/v1/movies')
@@ -35,12 +38,6 @@ def create_app():
     
     from api.v1.reservations.route import reservations_bp
     app.register_blueprint(reservations_bp, url_prefix='/api/v1/reservations')
-    
-    from api.v1.admin.analytics.route import analytics_bp
-    app.register_blueprint(analytics_bp, url_prefix='/api/v1/admin/analytics')
-    
-    from api.v1.admin.analytics.showtime_performance.route import showtime_perf_bp
-    app.register_blueprint(showtime_perf_bp, url_prefix='/api/v1/admin/analytics/showtime-performance')
     
     # DDL-first database initialization
     # Create database tables from DDL-generated models

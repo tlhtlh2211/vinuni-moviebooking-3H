@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback, use } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -16,7 +16,7 @@ import Image from "next/image"
 // Booking time limit in seconds (5 minutes)
 const BOOKING_TIME_LIMIT = 5 * 60
 
-export default function MovieDetailsPage({ params }: { params: Promise<{ showtimeId: string }> }) {
+export default function MovieDetailsPage({ params }: { params: { showtimeId: string } }) {
   const router = useRouter()
   const { user } = useAuth()
   const [movie, setMovie] = useState<MovieWithShowtimes | null>(null)
@@ -32,9 +32,6 @@ export default function MovieDetailsPage({ params }: { params: Promise<{ showtim
   const [timeLeft, setTimeLeft] = useState(BOOKING_TIME_LIMIT)
   const [timerActive, setTimerActive] = useState(false)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
-  
-  // Unwrap params Promise
-  const unwrappedParams = use(params)
 
   // Auto unlock selected seats
   const unlockSelectedSeats = useCallback(async () => {
@@ -115,7 +112,7 @@ export default function MovieDetailsPage({ params }: { params: Promise<{ showtim
   useEffect(() => {
     const fetchMovie = async () => {
       try {
-        const response = await fetch(`/api/v1/movies/${unwrappedParams.showtimeId}`)
+        const response = await fetch(`/api/v1/movies/${params.showtimeId}`)
         if (!response.ok) {
           throw new Error("Failed to fetch movie")
         }
@@ -170,7 +167,7 @@ export default function MovieDetailsPage({ params }: { params: Promise<{ showtim
     }
 
     fetchMovie()
-  }, [unwrappedParams.showtimeId, router])
+  }, [params.showtimeId, router])
 
   // Fetch seats when showtime is selected
   useEffect(() => {
@@ -284,7 +281,7 @@ export default function MovieDetailsPage({ params }: { params: Promise<{ showtim
 
     // Make sure user is logged in
     if (!user) {
-      router.push(`/login?redirect=/movies/${unwrappedParams.showtimeId}`)
+      router.push(`/login?redirect=/movies/${params.showtimeId}`)
       return
     }
 
@@ -321,7 +318,7 @@ export default function MovieDetailsPage({ params }: { params: Promise<{ showtim
   const handleShowtimeSelect = (showtimeId: number) => {
     // Check if user is logged in before proceeding to seat selection
     if (!user) {
-      router.push(`/login?redirect=/movies/${unwrappedParams.showtimeId}`)
+      router.push(`/login?redirect=/movies/${params.showtimeId}`)
       return
     }
 
@@ -331,7 +328,7 @@ export default function MovieDetailsPage({ params }: { params: Promise<{ showtim
 
   const handleBooking = async () => {
     if (!user) {
-      router.push(`/login?redirect=/movies/${unwrappedParams.showtimeId}`)
+      router.push(`/login?redirect=/movies/${params.showtimeId}`)
       return
     }
 
@@ -464,7 +461,7 @@ export default function MovieDetailsPage({ params }: { params: Promise<{ showtim
                 </Link>
               </>
             ) : (
-              <Link href={`/login?redirect=/movies/${unwrappedParams.showtimeId}`}>
+              <Link href={`/login?redirect=/movies/${params.showtimeId}`}>
                 <Button className="bg-yellow-400 text-black hover:bg-yellow-500 font-mono font-bold border-4 border-black">
                   LOGIN
                 </Button>
