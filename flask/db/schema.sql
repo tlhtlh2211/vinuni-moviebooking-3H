@@ -216,19 +216,20 @@ BEGIN
     /* Lock the specific seats we're trying to reserve */
     SELECT s.seat_id
       FROM seats s
-      JOIN JSON_TABLE(p_seat_ids, '$[*]' COLUMNS (seat_id INT PATH '$')) j
-        ON j.seat_id = s.seat_id
-     WHERE s.screen_id = v_screen_id
-     ORDER BY s.seat_id  -- Consistent order to prevent deadlocks
-     FOR UPDATE;
+      WHERE s.seat_id IN (
+          SELECT seat_id FROM JSON_TABLE(p_seat_ids, '$[*]' COLUMNS (seat_id INT PATH '$')) AS jt
+      )
+      AND s.screen_id = v_screen_id
+      ORDER BY s.seat_id  -- Consistent order to prevent deadlocks
+      FOR UPDATE;
 
     /* --------- 2. Validate the seat set */
 
     /* 2a – all seats belong to that screen */
     SELECT COUNT(*) INTO v_cnt
       FROM seats s
-      JOIN JSON_TABLE(p_seat_ids, '$[*]' COLUMNS (seat_id INT PATH '$')) j
-        ON j.seat_id = s.seat_id
+      JOIN JSON_TABLE(p_seat_ids, '$[*]' COLUMNS (seat_id INT PATH '$')) j1
+        ON j1.seat_id = s.seat_id
      WHERE s.screen_id <> v_screen_id;
     IF v_cnt > 0 THEN
         SIGNAL SQLSTATE '45000'
@@ -239,8 +240,8 @@ BEGIN
     SELECT COUNT(*) INTO v_cnt
       FROM tickets t
       JOIN reservations r ON r.reservation_id = t.reservation_id
-      JOIN JSON_TABLE(p_seat_ids, '$[*]' COLUMNS (seat_id INT PATH '$')) j
-        ON j.seat_id = t.seat_id
+      JOIN JSON_TABLE(p_seat_ids, '$[*]' COLUMNS (seat_id INT PATH '$')) j2
+        ON j2.seat_id = t.seat_id
      WHERE r.showtime_id = p_showtime_id;
     IF v_cnt > 0 THEN
         SIGNAL SQLSTATE '45000'
@@ -250,8 +251,8 @@ BEGIN
     /* 2c – none locked by **other** users and still valid */
     SELECT COUNT(*) INTO v_cnt
       FROM seat_locks l
-      JOIN JSON_TABLE(p_seat_ids, '$[*]' COLUMNS (seat_id INT PATH '$')) j
-        ON j.seat_id = l.seat_id
+      JOIN JSON_TABLE(p_seat_ids, '$[*]' COLUMNS (seat_id INT PATH '$')) j3
+        ON j3.seat_id = l.seat_id
      WHERE l.showtime_id = p_showtime_id
        AND l.user_id <> p_user_id
        AND l.expires_at > v_now;
@@ -283,8 +284,8 @@ BEGIN
                 WHEN '3D' THEN 1.25
                 WHEN 'IMAX' THEN 1.50 END) AS price
       FROM seats s
-      JOIN JSON_TABLE(p_seat_ids, '$[*]' COLUMNS (seat_id INT PATH '$')) j
-        ON j.seat_id = s.seat_id;
+      JOIN JSON_TABLE(p_seat_ids, '$[*]' COLUMNS (seat_id INT PATH '$')) j4
+        ON j4.seat_id = s.seat_id;
 
     /* --------- 5. Update reservation total & set to confirmed */
     UPDATE reservations
@@ -296,7 +297,7 @@ BEGIN
      WHERE user_id = p_user_id
        AND showtime_id = p_showtime_id
        AND seat_id IN (SELECT seat_id
-                         FROM JSON_TABLE(p_seat_ids,'$[*]' COLUMNS (seat_id INT PATH '$')) AS j);
+                         FROM JSON_TABLE(p_seat_ids,'$[*]' COLUMNS (seat_id INT PATH '$')) AS j5);
 
     COMMIT;
 END//
