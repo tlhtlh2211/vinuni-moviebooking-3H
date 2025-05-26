@@ -52,7 +52,6 @@ System functions:
 - `users`: login credentials and roles (admin, customer).
 - `reservations`: a user's booking for one showtime (total payment, number of tickets, discounts, payment ref)
 - `tickets`: seat‑level records linked to a reservation
-- `payments`: charge details and status for a reservation
 
 ## Tech Stack
 - MySQL
@@ -109,8 +108,8 @@ python setup.py
 # 2. Add sample data
 python seed_data.py
 
-# Optional: Add test-specific data
-python seed_data.py
+# 3. Add test users
+python python add_test_users.py
 
 # Verify database creation
 mysql -u root -p -e "SHOW DATABASES; USE movie_booking; SHOW TABLES;"
