@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Film, Plus, Edit, Trash2, LogOut, Trophy, TrendingUp } from "lucide-react"
+import { Film, Plus, LogOut, Trophy } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { motion } from "framer-motion"
 import { UserRole } from "@/types/database"
@@ -70,13 +70,6 @@ export default function AdminDashboard() {
     }
   }, [user])
 
-  // In a real app, you would fetch movies from an API or database
-  const movies = [
-    { id: 1, title: "Brutal Action", genre: "Action", time: "14:30", seats: 120, booked: 45 },
-    { id: 2, title: "Raw Comedy", genre: "Comedy", time: "16:45", seats: 100, booked: 78 },
-    { id: 3, title: "Concrete Drama", genre: "Drama", time: "19:00", seats: 120, booked: 32 },
-    { id: 4, title: "Brutalist Horror", genre: "Horror", time: "21:15", seats: 80, booked: 65 },
-  ]
 
   const handleLogout = () => {
     logout()
@@ -247,7 +240,7 @@ export default function AdminDashboard() {
           className="bg-purple-500 p-6 border-8 border-black mb-8"
         >
           <h3 className="text-2xl font-mono font-bold mb-4 text-white">ANALYTICS & REPORTS</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
             <Link href="/admin/analytics/movies">
               <motion.div 
                 whileHover={{ scale: 1.05 }} 
@@ -258,70 +251,6 @@ export default function AdminDashboard() {
                 <p className="font-mono text-sm">View movie leaderboard and performance metrics</p>
               </motion.div>
             </Link>
-            <motion.div 
-              whileHover={{ scale: 1.05 }} 
-              className="bg-white p-4 border-4 border-black opacity-50 cursor-not-allowed"
-            >
-              <TrendingUp className="h-8 w-8 mb-2" />
-              <p className="font-mono font-bold text-lg">SHOWTIME ANALYTICS</p>
-              <p className="font-mono text-sm">Coming soon...</p>
-            </motion.div>
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ y: 50, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
-          className="bg-white border-8 border-black p-4"
-        >
-          <h3 className="text-2xl font-mono font-bold mb-4">MANAGE MOVIES</h3>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="bg-black text-white">
-                  <th className="border-4 border-black p-4 font-mono text-left">ID</th>
-                  <th className="border-4 border-black p-4 font-mono text-left">TITLE</th>
-                  <th className="border-4 border-black p-4 font-mono text-left">GENRE</th>
-                  <th className="border-4 border-black p-4 font-mono text-left">TIME</th>
-                  <th className="border-4 border-black p-4 font-mono text-left">SEATS</th>
-                  <th className="border-4 border-black p-4 font-mono text-left">BOOKED</th>
-                  <th className="border-4 border-black p-4 font-mono text-left">ACTIONS</th>
-                </tr>
-              </thead>
-              <tbody>
-                {movies.map((movie, index) => (
-                  <motion.tr
-                    key={movie.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.3, delay: 0.5 + index * 0.1 }}
-                    className="border-b-4 border-black hover:bg-gray-100"
-                  >
-                    <td className="border-4 border-black p-4 font-mono">{movie.id}</td>
-                    <td className="border-4 border-black p-4 font-mono font-bold">{movie.title}</td>
-                    <td className="border-4 border-black p-4 font-mono">{movie.genre}</td>
-                    <td className="border-4 border-black p-4 font-mono">{movie.time}</td>
-                    <td className="border-4 border-black p-4 font-mono">{movie.seats}</td>
-                    <td className="border-4 border-black p-4 font-mono">{movie.booked}</td>
-                    <td className="border-4 border-black p-4 font-mono">
-                      <div className="flex gap-2">
-                        <motion.div whileHover={{ scale: 1.1 }}>
-                          <Button className="bg-blue-500 text-white hover:bg-blue-600 font-mono border-2 border-black p-2 h-auto">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        </motion.div>
-                        <motion.div whileHover={{ scale: 1.1 }}>
-                          <Button className="bg-red-500 text-white hover:bg-red-600 font-mono border-2 border-black p-2 h-auto">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </motion.div>
-                      </div>
-                    </td>
-                  </motion.tr>
-                ))}
-              </tbody>
-            </table>
           </div>
         </motion.div>
       </div>
