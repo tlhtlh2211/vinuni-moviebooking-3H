@@ -4,10 +4,11 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Film, Plus, LogOut, Trophy } from "lucide-react"
+import { Film, LogOut, Trophy } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { motion } from "framer-motion"
 import { UserRole } from "@/types/database"
+import { AddMovieModal } from "@/components/admin/AddMovieModal"
 
 interface RevenueSummary {
   revenue_today: number
@@ -140,12 +141,11 @@ export default function AdminDashboard() {
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.3 }}
-            whileHover={{ scale: 1.05 }}
           >
-            <Button className="bg-green-500 text-white hover:bg-green-600 font-mono text-xl p-6 border-4 border-black flex items-center gap-2">
-              <Plus className="h-6 w-6" />
-              ADD NEW MOVIE
-            </Button>
+            <AddMovieModal onSuccess={() => {
+              // Optionally refresh data or show success message
+              console.log("Movie added successfully!")
+            }} />
           </motion.div>
         </div>
 
