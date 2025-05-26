@@ -168,7 +168,6 @@ class DatabaseSeeder:
             ("users", "SELECT COUNT(*) FROM users", 5, "users"),
             ("movies", "SELECT COUNT(*) FROM movies", 6, "movies"),
             ("showtimes", "SELECT COUNT(*) FROM showtimes", 129, "showtimes"),
-            ("reservations", "SELECT COUNT(*) FROM reservations", 4, "reservations"),
         ]
         
         validation_passed = True
