@@ -242,6 +242,7 @@ def get_cinema_schedule(cinema_id, date):
         result = db.session.execute(
             text("""
                 SELECT 
+                    showtime_id,
                     screen_id,
                     screen_name,
                     movie_title,
@@ -273,6 +274,7 @@ def get_cinema_schedule(cinema_id, date):
                 }
             
             schedule[screen_name]['timeslots'].append({
+                'showtime_id': row.showtime_id,
                 'movie_title': row.movie_title,
                 'start_time': row.start_time,
                 'end_time': row.end_time,

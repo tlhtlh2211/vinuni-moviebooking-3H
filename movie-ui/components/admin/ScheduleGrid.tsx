@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Calendar, Clock } from 'lucide-react'
 
 interface Timeslot {
+  showtime_id: number
   movie_title: string
   start_time: string
   end_time: string
@@ -27,7 +28,7 @@ interface ScheduleData {
 interface ScheduleGridProps {
   cinemaId: number
   date: string
-  onTimeSlotClick?: (screenId: number, time: string) => void
+  onTimeSlotClick?: (screenId: number, timeslot: Timeslot) => void
 }
 
 export function ScheduleGrid({ cinemaId, date, onTimeSlotClick }: ScheduleGridProps) {
@@ -35,9 +36,9 @@ export function ScheduleGrid({ cinemaId, date, onTimeSlotClick }: ScheduleGridPr
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Operating hours: 9 AM to 11 PM (14 hours)
-  const START_HOUR = 9
-  const END_HOUR = 23
+  // Operating hours: 24-hour display (0:01 AM to 23:59 PM)
+  const START_HOUR = 0
+  const END_HOUR = 24
   const HOURS = Array.from({ length: END_HOUR - START_HOUR }, (_, i) => START_HOUR + i)
 
   useEffect(() => {
@@ -96,7 +97,7 @@ export function ScheduleGrid({ cinemaId, date, onTimeSlotClick }: ScheduleGridPr
     <div className="w-full">
       <div className="mb-4 flex items-center gap-2 text-sm text-gray-600">
         <Calendar className="h-4 w-4" />
-        <span>Schedule for {date}</span>
+        <span>24-Hour Schedule for {date}</span>
       </div>
 
       {/* Time header */}
@@ -105,9 +106,11 @@ export function ScheduleGrid({ cinemaId, date, onTimeSlotClick }: ScheduleGridPr
           {HOURS.map(hour => (
             <div
               key={hour}
-              className="flex-1 border-l border-gray-300 px-1 text-xs text-gray-500"
+              className={`flex-1 border-l border-gray-300 px-0.5 text-xs text-gray-500 text-center ${
+                hour % 3 === 0 ? 'font-semibold' : 'font-normal opacity-75'
+              }`}
             >
-              {hour}:00
+              {hour % 3 === 0 ? hour.toString().padStart(2, '0') + ':00' : ''}
             </div>
           ))}
           <div className="flex-1 border-l border-gray-300"></div>
@@ -125,12 +128,14 @@ export function ScheduleGrid({ cinemaId, date, onTimeSlotClick }: ScheduleGridPr
             </div>
 
             {/* Timeline */}
-            <div className="relative h-16 rounded border border-gray-300 bg-gray-50">
+            <div className="relative h-20 rounded border border-gray-300 bg-gray-50">
               {/* Hour grid lines */}
               {HOURS.map((hour, index) => (
                 <div
                   key={hour}
-                  className="absolute top-0 h-full border-l border-gray-200"
+                  className={`absolute top-0 h-full border-l ${
+                    hour % 3 === 0 ? 'border-gray-300' : 'border-gray-200'
+                  }`}
                   style={{ left: `${(index / HOURS.length) * 100}%` }}
                 />
               ))}
@@ -156,12 +161,18 @@ export function ScheduleGrid({ cinemaId, date, onTimeSlotClick }: ScheduleGridPr
                     
                     {/* Movie slot */}
                     <div
-                      className="absolute top-1/2 h-10 -translate-y-1/2 cursor-pointer rounded bg-blue-500 px-2 text-white shadow-sm transition-all hover:bg-blue-600 hover:shadow-md"
+                      className="absolute top-1/2 h-12 -translate-y-1/2 cursor-pointer rounded bg-blue-500 px-1 text-white shadow-sm transition-all hover:bg-blue-600 hover:shadow-md z-10 active:bg-blue-700"
                       style={{
                         left: `${left}%`,
                         width: `${width}%`,
                       }}
-                      onClick={() => onTimeSlotClick?.(screenData.screen_id, slot.start_time)}
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        if (onTimeSlotClick) {
+                          onTimeSlotClick(screenData.screen_id, slot)
+                        }
+                      }}
                       title={`${slot.movie_title}\n${slot.start_time} - ${slot.end_time}`}
                     >
                       <div className="flex h-full items-center">

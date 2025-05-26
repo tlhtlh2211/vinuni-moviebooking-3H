@@ -6,13 +6,13 @@ const FLASK_API_BASE_URL = "http://127.0.0.1:5000/api/v1/admin/movies/schedule"
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { cinema_id: string; date: string } }
+  { params }: { params: Promise<{ cinema_id: string; date: string }> }
 ) {
   try {
     // TODO: Add authentication check when authentication is implemented
     // For now, this endpoint is open but should be protected in production
     
-    const { cinema_id, date } = params
+    const { cinema_id, date } = await params
     
     // Send a request to the Flask API
     const response = await axios.get(`${FLASK_API_BASE_URL}/${cinema_id}/${date}`)
