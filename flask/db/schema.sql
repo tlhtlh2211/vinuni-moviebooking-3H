@@ -43,6 +43,7 @@ CREATE TABLE movies (
     duration INT NOT NULL, -- in minutes
     rating ENUM('G', 'PG', 'PG-13', 'R', 'NC-17') NOT NULL DEFAULT 'G',
     release_date DATE,
+    scheduled_close_date DATE COMMENT 'Date when the movie should be automatically closed',
     status ENUM('open','closed') NOT NULL DEFAULT 'open',
     description TEXT,
     director VARCHAR(100),
@@ -175,6 +176,44 @@ BEGIN
 END//
 DELIMITER ;
 
+-- TRIGGER: Set scheduled close date on movie insert
+DELIMITER //
+CREATE TRIGGER trg_movie_set_close_date_insert
+BEFORE INSERT ON movies
+FOR EACH ROW
+BEGIN
+    -- Set scheduled close date to 1 month after release date
+    IF NEW.release_date IS NOT NULL THEN
+        SET NEW.scheduled_close_date = DATE_ADD(NEW.release_date, INTERVAL 1 MONTH);
+    END IF;
+    
+    -- If inserting with a past scheduled close date, auto-close the movie
+    IF NEW.scheduled_close_date IS NOT NULL AND NEW.scheduled_close_date <= CURDATE() THEN
+        SET NEW.status = 'closed';
+    END IF;
+END//
+DELIMITER ;
+
+-- TRIGGER: Update scheduled close date on movie update
+DELIMITER //
+CREATE TRIGGER trg_movie_set_close_date_update
+BEFORE UPDATE ON movies
+FOR EACH ROW
+BEGIN
+    -- Update scheduled close date if release date changes
+    IF NEW.release_date != OLD.release_date OR (NEW.release_date IS NOT NULL AND OLD.release_date IS NULL) THEN
+        SET NEW.scheduled_close_date = DATE_ADD(NEW.release_date, INTERVAL 1 MONTH);
+    END IF;
+    
+    -- Auto-close if scheduled close date has passed (unless manually overridden)
+    IF NEW.scheduled_close_date IS NOT NULL 
+       AND NEW.scheduled_close_date <= CURDATE() 
+       AND NEW.status = OLD.status -- Only auto-close if status wasn't manually changed
+       AND OLD.status = 'open' THEN
+        SET NEW.status = 'closed';
+    END IF;
+END//
+DELIMITER ;
 
 -- PROCEDURE: Create a reservation
 DELIMITER //

@@ -37,7 +37,7 @@ INSERT INTO screens (cinema_id, name, screen_format) VALUES
 -- Rows A-E: Standard seats (60 seats)
 -- Rows F-H: Premium seats (36 seats)
 
--- Screen 1
+-- VinUni Screen 1
 INSERT INTO seats (screen_id, seat_class, seat_label, row_num, col_num) VALUES
 (1, 'standard', 'A1', 1, 1), (1, 'standard', 'A2', 1, 2), (1, 'standard', 'A3', 1, 3), (1, 'standard', 'A4', 1, 4),
 (1, 'standard', 'A5', 1, 5), (1, 'standard', 'A6', 1, 6), (1, 'standard', 'A7', 1, 7), (1, 'standard', 'A8', 1, 8),
@@ -64,7 +64,7 @@ INSERT INTO seats (screen_id, seat_class, seat_label, row_num, col_num) VALUES
 (1, 'premium', 'H5', 8, 5), (1, 'premium', 'H6', 8, 6), (1, 'premium', 'H7', 8, 7), (1, 'premium', 'H8', 8, 8),
 (1, 'premium', 'H9', 8, 9), (1, 'premium', 'H10', 8, 10), (1, 'premium', 'H11', 8, 11), (1, 'premium', 'H12', 8, 12);
 
--- Screen 2
+-- VinUni Screen 2
 INSERT INTO seats (screen_id, seat_class, seat_label, row_num, col_num) VALUES
 (2, 'standard', 'A1', 1, 1), (2, 'standard', 'A2', 1, 2), (2, 'standard', 'A3', 1, 3), (2, 'standard', 'A4', 1, 4),
 (2, 'standard', 'A5', 1, 5), (2, 'standard', 'A6', 1, 6), (2, 'standard', 'A7', 1, 7), (2, 'standard', 'A8', 1, 8),
@@ -91,7 +91,7 @@ INSERT INTO seats (screen_id, seat_class, seat_label, row_num, col_num) VALUES
 (2, 'premium', 'H5', 8, 5), (2, 'premium', 'H6', 8, 6), (2, 'premium', 'H7', 8, 7), (2, 'premium', 'H8', 8, 8),
 (2, 'premium', 'H9', 8, 9), (2, 'premium', 'H10', 8, 10), (2, 'premium', 'H11', 8, 11), (2, 'premium', 'H12', 8, 12);
 
--- Screen 3
+-- VinUni IMAX
 INSERT INTO seats (screen_id, seat_class, seat_label, row_num, col_num) VALUES
 (3, 'standard', 'A1', 1, 1), (3, 'standard', 'A2', 1, 2), (3, 'standard', 'A3', 1, 3), (3, 'standard', 'A4', 1, 4),
 (3, 'standard', 'A5', 1, 5), (3, 'standard', 'A6', 1, 6), (3, 'standard', 'A7', 1, 7), (3, 'standard', 'A8', 1, 8),
@@ -118,7 +118,7 @@ INSERT INTO seats (screen_id, seat_class, seat_label, row_num, col_num) VALUES
 (3, 'premium', 'H5', 8, 5), (3, 'premium', 'H6', 8, 6), (3, 'premium', 'H7', 8, 7), (3, 'premium', 'H8', 8, 8),
 (3, 'premium', 'H9', 8, 9), (3, 'premium', 'H10', 8, 10), (3, 'premium', 'H11', 8, 11), (3, 'premium', 'H12', 8, 12);
 
--- Screen 4
+-- Downtown Screen 1
 INSERT INTO seats (screen_id, seat_class, seat_label, row_num, col_num) VALUES
 (4, 'standard', 'A1', 1, 1), (4, 'standard', 'A2', 1, 2), (4, 'standard', 'A3', 1, 3), (4, 'standard', 'A4', 1, 4),
 (4, 'standard', 'A5', 1, 5), (4, 'standard', 'A6', 1, 6), (4, 'standard', 'A7', 1, 7), (4, 'standard', 'A8', 1, 8),
@@ -145,7 +145,7 @@ INSERT INTO seats (screen_id, seat_class, seat_label, row_num, col_num) VALUES
 (4, 'premium', 'H5', 8, 5), (4, 'premium', 'H6', 8, 6), (4, 'premium', 'H7', 8, 7), (4, 'premium', 'H8', 8, 8),
 (4, 'premium', 'H9', 8, 9), (4, 'premium', 'H10', 8, 10), (4, 'premium', 'H11', 8, 11), (4, 'premium', 'H12', 8, 12);
 
--- Screen 5
+-- Downtown Screen 2
 INSERT INTO seats (screen_id, seat_class, seat_label, row_num, col_num) VALUES
 (5, 'standard', 'A1', 1, 1), (5, 'standard', 'A2', 1, 2), (5, 'standard', 'A3', 1, 3), (5, 'standard', 'A4', 1, 4),
 (5, 'standard', 'A5', 1, 5), (5, 'standard', 'A6', 1, 6), (5, 'standard', 'A7', 1, 7), (5, 'standard', 'A8', 1, 8),
@@ -172,7 +172,7 @@ INSERT INTO seats (screen_id, seat_class, seat_label, row_num, col_num) VALUES
 (5, 'premium', 'H5', 8, 5), (5, 'premium', 'H6', 8, 6), (5, 'premium', 'H7', 8, 7), (5, 'premium', 'H8', 8, 8),
 (5, 'premium', 'H9', 8, 9), (5, 'premium', 'H10', 8, 10), (5, 'premium', 'H11', 8, 11), (5, 'premium', 'H12', 8, 12);
 
--- Screen 6
+-- Galaxy Screen 1
 INSERT INTO seats (screen_id, seat_class, seat_label, row_num, col_num) VALUES
 (6, 'standard', 'A1', 1, 1), (6, 'standard', 'A2', 1, 2), (6, 'standard', 'A3', 1, 3), (6, 'standard', 'A4', 1, 4),
 (6, 'standard', 'A5', 1, 5), (6, 'standard', 'A6', 1, 6), (6, 'standard', 'A7', 1, 7), (6, 'standard', 'A8', 1, 8),
@@ -199,7 +199,7 @@ INSERT INTO seats (screen_id, seat_class, seat_label, row_num, col_num) VALUES
 (6, 'premium', 'H5', 8, 5), (6, 'premium', 'H6', 8, 6), (6, 'premium', 'H7', 8, 7), (6, 'premium', 'H8', 8, 8),
 (6, 'premium', 'H9', 8, 9), (6, 'premium', 'H10', 8, 10), (6, 'premium', 'H11', 8, 11), (6, 'premium', 'H12', 8, 12);
 
--- Screen 7
+-- Galaxy Screen 2
 INSERT INTO seats (screen_id, seat_class, seat_label, row_num, col_num) VALUES
 (7, 'standard', 'A1', 1, 1), (7, 'standard', 'A2', 1, 2), (7, 'standard', 'A3', 1, 3), (7, 'standard', 'A4', 1, 4),
 (7, 'standard', 'A5', 1, 5), (7, 'standard', 'A6', 1, 6), (7, 'standard', 'A7', 1, 7), (7, 'standard', 'A8', 1, 8),
@@ -226,6 +226,7 @@ INSERT INTO seats (screen_id, seat_class, seat_label, row_num, col_num) VALUES
 (7, 'premium', 'H5', 8, 5), (7, 'premium', 'H6', 8, 6), (7, 'premium', 'H7', 8, 7), (7, 'premium', 'H8', 8, 8),
 (7, 'premium', 'H9', 8, 9), (7, 'premium', 'H10', 8, 10), (7, 'premium', 'H11', 8, 11), (7, 'premium', 'H12', 8, 12);
 
+-- Insert movies (scheduled_close_date will be set automatically by trigger)
 INSERT INTO movies (title, duration, rating, release_date, status, description, director, cast, genre, poster_url) VALUES
 ('Avatar: The Way of Water', 192, 'PG-13', '2023-12-16', 'open', 
  'Jake Sully lives with his newfound family formed on the planet of Pandora. Once a familiar threat returns to finish what was previously started, Jake must work with Neytiri and the army of the Navi race to protect their planet.',
