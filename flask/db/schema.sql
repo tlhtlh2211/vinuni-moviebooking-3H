@@ -137,42 +137,101 @@ CREATE TABLE seat_locks (
     CONSTRAINT chk_lock_expiry_after_lock CHECK (expires_at > locked_at)
 );
 
--- TRIGGER: Prevent overlapping showtimes on the same screen
+-- TRIGGER: Prevent overlapping showtimes on the same screen (INSERT)
+-- Includes 15-minute buffer time between shows for cleaning and audience transition
 DELIMITER //
 CREATE TRIGGER trg_showtime_no_overlap 
 BEFORE INSERT ON showtimes 
 FOR EACH ROW 
 BEGIN 
-    IF EXISTS (
-        SELECT 1 
+    DECLARE conflict_count INT DEFAULT 0;
+    DECLARE conflict_movie VARCHAR(255);
+    DECLARE buffer_minutes INT DEFAULT 15;
+    
+    -- Check for overlaps including buffer time
+    SELECT COUNT(*) INTO conflict_count
+    FROM showtimes s
+    WHERE s.screen_id = NEW.screen_id
+      AND (
+          -- Direct overlap check
+          (NEW.start_time < s.end_time AND NEW.end_time > s.start_time)
+          OR
+          -- Buffer time overlap check
+          (NEW.start_time < DATE_ADD(s.end_time, INTERVAL buffer_minutes MINUTE) 
+           AND DATE_ADD(NEW.end_time, INTERVAL buffer_minutes MINUTE) > s.start_time)
+      );
+    
+    IF conflict_count > 0 THEN
+        -- Get first conflicting movie for error message
+        SELECT m.title INTO conflict_movie
         FROM showtimes s
-        WHERE s.screen_id = NEW.screen_id 
-        AND NEW.start_time < s.end_time 
-        AND NEW.end_time > s.start_time
-    ) THEN 
+        JOIN movies m ON m.movie_id = s.movie_id
+        WHERE s.screen_id = NEW.screen_id
+          AND (
+              (NEW.start_time < s.end_time AND NEW.end_time > s.start_time)
+              OR
+              (NEW.start_time < DATE_ADD(s.end_time, INTERVAL buffer_minutes MINUTE) 
+               AND DATE_ADD(NEW.end_time, INTERVAL buffer_minutes MINUTE) > s.start_time)
+          )
+        LIMIT 1;
+        
+        SET @error_msg = CONCAT('Schedule conflict with: ', IFNULL(conflict_movie, 'another movie'));
         SIGNAL SQLSTATE '45000' 
-        SET MESSAGE_TEXT='Overlapping showtime'; 
-    END IF; 
+        SET MESSAGE_TEXT = @error_msg;
+    END IF;
 END//
 DELIMITER ;
 
--- TRIGGER: Prevent overlapping showtimes on the same screen (update)
+-- TRIGGER: Prevent overlapping showtimes on the same screen (UPDATE)
+-- Includes 15-minute buffer time between shows for cleaning and audience transition
 DELIMITER //
 CREATE TRIGGER trg_showtime_no_overlap_update 
 BEFORE UPDATE ON showtimes 
 FOR EACH ROW 
 BEGIN 
-    IF EXISTS (
-        SELECT 1 
+    DECLARE conflict_count INT DEFAULT 0;
+    DECLARE conflict_movie VARCHAR(255);
+    DECLARE buffer_minutes INT DEFAULT 15;
+    
+    -- Only check if time or screen changed
+    IF NEW.start_time != OLD.start_time 
+       OR NEW.end_time != OLD.end_time 
+       OR NEW.screen_id != OLD.screen_id THEN
+       
+        -- Check for overlaps including buffer time
+        SELECT COUNT(*) INTO conflict_count
         FROM showtimes s
-        WHERE s.screen_id = NEW.screen_id 
-        AND NEW.start_time < s.end_time 
-        AND NEW.end_time > s.start_time
-        AND s.showtime_id != NEW.showtime_id
-    ) THEN 
-        SIGNAL SQLSTATE '45000' 
-        SET MESSAGE_TEXT='Overlapping showtime'; 
-    END IF; 
+        WHERE s.screen_id = NEW.screen_id
+          AND s.showtime_id != NEW.showtime_id  -- Exclude self
+          AND (
+              -- Direct overlap check
+              (NEW.start_time < s.end_time AND NEW.end_time > s.start_time)
+              OR
+              -- Buffer time overlap check
+              (NEW.start_time < DATE_ADD(s.end_time, INTERVAL buffer_minutes MINUTE) 
+               AND DATE_ADD(NEW.end_time, INTERVAL buffer_minutes MINUTE) > s.start_time)
+          );
+        
+        IF conflict_count > 0 THEN
+            -- Get first conflicting movie for error message
+            SELECT m.title INTO conflict_movie
+            FROM showtimes s
+            JOIN movies m ON m.movie_id = s.movie_id
+            WHERE s.screen_id = NEW.screen_id
+              AND s.showtime_id != NEW.showtime_id
+              AND (
+                  (NEW.start_time < s.end_time AND NEW.end_time > s.start_time)
+                  OR
+                  (NEW.start_time < DATE_ADD(s.end_time, INTERVAL buffer_minutes MINUTE) 
+                   AND DATE_ADD(NEW.end_time, INTERVAL buffer_minutes MINUTE) > s.start_time)
+              )
+            LIMIT 1;
+            
+            SET @error_msg = CONCAT('Schedule conflict with: ', IFNULL(conflict_movie, 'another movie'));
+            SIGNAL SQLSTATE '45000' 
+            SET MESSAGE_TEXT = @error_msg;
+        END IF;
+    END IF;
 END//
 DELIMITER ;
 
@@ -553,3 +612,37 @@ LEFT JOIN (
 ) perf ON perf.movie_id = m.movie_id
 
 ORDER BY composite_performance_score DESC, total_revenue DESC;
+
+-- VIEW: Occupied timeslots for scheduling visualization
+-- Shows all showtimes with buffer periods for admin scheduling interface
+CREATE OR REPLACE VIEW v_occupied_timeslots AS
+SELECT 
+    s.showtime_id,
+    s.screen_id,
+    sc.name AS screen_name,
+    sc.cinema_id,
+    c.name AS cinema_name,
+    c.city AS cinema_city,
+    s.start_time,
+    s.end_time,
+    -- Add 15-minute buffer for cleaning/transition
+    DATE_SUB(s.start_time, INTERVAL 15 MINUTE) AS buffer_start,
+    DATE_ADD(s.end_time, INTERVAL 15 MINUTE) AS buffer_end,
+    DATE(s.start_time) AS show_date,
+    TIME(s.start_time) AS show_time,
+    m.movie_id,
+    m.title AS movie_title,
+    m.duration AS movie_duration,
+    m.status AS movie_status,
+    sc.screen_format,
+    -- Helper columns for scheduling UI
+    HOUR(s.start_time) AS start_hour,
+    MINUTE(s.start_time) AS start_minute,
+    HOUR(s.end_time) AS end_hour,
+    MINUTE(s.end_time) AS end_minute
+FROM showtimes s
+JOIN screens sc ON sc.screen_id = s.screen_id
+JOIN cinemas c ON c.cinema_id = sc.cinema_id  
+JOIN movies m ON m.movie_id = s.movie_id
+WHERE s.start_time >= DATE_SUB(NOW(), INTERVAL 1 DAY)  -- Include recent past for context
+ORDER BY s.screen_id, s.start_time;

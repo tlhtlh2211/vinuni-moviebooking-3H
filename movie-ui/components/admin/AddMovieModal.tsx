@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
+import { ScheduleGrid } from './ScheduleGrid'
 
 interface Cinema {
   cinema_id: number
@@ -216,7 +217,14 @@ export function AddMovieModal({ onSuccess }: AddMovieModalProps) {
         handleClose()
         onSuccess?.()
       } else {
-        setErrors({ submit: data.message || 'Failed to create movie' })
+        // Check if it's a schedule conflict error
+        if (data.type === 'schedule_conflict') {
+          setErrors({ submit: data.message })
+          // Re-check conflicts to show updated UI
+          await checkConflicts()
+        } else {
+          setErrors({ submit: data.message || 'Failed to create movie' })
+        }
       }
     } catch (error) {
       setErrors({ submit: 'Failed to create movie' })
@@ -475,6 +483,17 @@ export function AddMovieModal({ onSuccess }: AddMovieModalProps) {
             {selectedScreens.length > 0 && (
               <div className="space-y-4">
                 <Label>Schedule Showtimes</Label>
+                
+                {/* Show visual schedule for the first selected date */}
+                {selectedCinema && showtimeEntries[0]?.date && (
+                  <div className="mb-4">
+                    <ScheduleGrid 
+                      cinemaId={parseInt(selectedCinema)} 
+                      date={showtimeEntries[0].date}
+                    />
+                  </div>
+                )}
+                
                 {showtimeEntries.map((entry, entryIndex) => (
                   <div key={entryIndex} className="border p-4 rounded-lg space-y-3">
                     <div className="flex items-center gap-2">
