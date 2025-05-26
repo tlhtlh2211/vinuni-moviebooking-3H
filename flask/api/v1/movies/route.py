@@ -3,7 +3,7 @@ from models import Movies, Showtimes, Screens, Cinemas  # Updated to DDL-first m
 from serializers import ModelSerializer
 from extensions import db
 from datetime import datetime
-from sqlalchemy import select
+from sqlalchemy import select, text
 
 movies_bp = Blueprint('movies', __name__)
 
@@ -25,25 +25,49 @@ def get_movie(movie_id):
         
     movie_dict = ModelSerializer.serialize_movies(movie)
     
-    # Get showtimes for this movie
-    showtimes = db.session.execute(
-        select(Showtimes).where(Showtimes.movie_id == movie_id)
-    ).scalars().all()
+    # Get active showtimes for this movie using the view
+    showtimes_query = text("""
+        SELECT 
+            showtime_id,
+            movie_id,
+            screen_id,
+            start_time,
+            end_time,
+            screen_name,
+            screen_format,
+            cinema_id,
+            cinema_name,
+            cinema_address,
+            cinema_city
+        FROM v_active_showtimes_details
+        WHERE movie_id = :movie_id
+        ORDER BY start_time
+    """)
+    
+    showtimes_result = db.session.execute(showtimes_query, {'movie_id': movie_id})
     showtimes_list = []
     
-    for showtime in showtimes:
-        showtime_dict = ModelSerializer.serialize_showtimes(showtime)
-        
-        # Get screen details
-        screen = db.session.get(Screens, showtime.screen_id)
-        if screen:
-            showtime_dict['screen'] = ModelSerializer.serialize_screens(screen)
-            
-            # Get cinema details
-            cinema = db.session.get(Cinemas, screen.cinema_id)
-            if cinema:
-                showtime_dict['cinema'] = ModelSerializer.serialize_cinemas(cinema)
-        
+    for row in showtimes_result:
+        showtime_dict = {
+            'showtime_id': row.showtime_id,
+            'movie_id': row.movie_id,
+            'screen_id': row.screen_id,
+            'start_time': row.start_time.isoformat(),
+            'end_time': row.end_time.isoformat(),
+            'movie_title': movie.title,
+            'screen': {
+                'screen_id': row.screen_id,
+                'cinema_id': row.cinema_id,
+                'name': row.screen_name,
+                'screen_format': row.screen_format
+            },
+            'cinema': {
+                'cinema_id': row.cinema_id,
+                'name': row.cinema_name,
+                'address': row.cinema_address,
+                'city': row.cinema_city
+            }
+        }
         showtimes_list.append(showtime_dict)
     
     movie_dict['showtimes'] = showtimes_list
@@ -61,25 +85,49 @@ def get_movie_showtimes(movie_id):
     if not movie:
         return jsonify({'error': 'Movie not found'}), 404
     
-    # Get showtimes for this movie
-    showtimes = db.session.execute(
-        select(Showtimes).where(Showtimes.movie_id == movie_id)
-    ).scalars().all()
+    # Get active showtimes for this movie using the view
+    showtimes_query = text("""
+        SELECT 
+            showtime_id,
+            movie_id,
+            screen_id,
+            start_time,
+            end_time,
+            screen_name,
+            screen_format,
+            cinema_id,
+            cinema_name,
+            cinema_address,
+            cinema_city
+        FROM v_active_showtimes_details
+        WHERE movie_id = :movie_id
+        ORDER BY start_time
+    """)
+    
+    showtimes_result = db.session.execute(showtimes_query, {'movie_id': movie_id})
     showtimes_list = []
     
-    for showtime in showtimes:
-        showtime_dict = ModelSerializer.serialize_showtimes(showtime)
-        
-        # Get screen details
-        screen = db.session.get(Screens, showtime.screen_id)
-        if screen:
-            showtime_dict['screen'] = ModelSerializer.serialize_screens(screen)
-            
-            # Get cinema details
-            cinema = db.session.get(Cinemas, screen.cinema_id)
-            if cinema:
-                showtime_dict['cinema'] = ModelSerializer.serialize_cinemas(cinema)
-        
+    for row in showtimes_result:
+        showtime_dict = {
+            'showtime_id': row.showtime_id,
+            'movie_id': row.movie_id,
+            'screen_id': row.screen_id,
+            'start_time': row.start_time.isoformat(),
+            'end_time': row.end_time.isoformat(),
+            'movie_title': movie.title,
+            'screen': {
+                'screen_id': row.screen_id,
+                'cinema_id': row.cinema_id,
+                'name': row.screen_name,
+                'screen_format': row.screen_format
+            },
+            'cinema': {
+                'cinema_id': row.cinema_id,
+                'name': row.cinema_name,
+                'address': row.cinema_address,
+                'city': row.cinema_city
+            }
+        }
         showtimes_list.append(showtime_dict)
     
     return jsonify({

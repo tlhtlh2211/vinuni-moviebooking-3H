@@ -213,13 +213,23 @@ BEGIN
           SET MESSAGE_TEXT = 'Showtime not found';
     END IF;
 
+    /* Lock the specific seats we're trying to reserve */
+    SELECT s.seat_id
+      FROM seats s
+      WHERE s.seat_id IN (
+          SELECT seat_id FROM JSON_TABLE(p_seat_ids, '$[*]' COLUMNS (seat_id INT PATH '$')) AS jt
+      )
+      AND s.screen_id = v_screen_id
+      ORDER BY s.seat_id  -- Consistent order to prevent deadlocks
+      FOR UPDATE;
+
     /* --------- 2. Validate the seat set */
 
     /* 2a – all seats belong to that screen */
     SELECT COUNT(*) INTO v_cnt
       FROM seats s
-      JOIN JSON_TABLE(p_seat_ids, '$[*]' COLUMNS (seat_id INT PATH '$')) j
-        ON j.seat_id = s.seat_id
+      JOIN JSON_TABLE(p_seat_ids, '$[*]' COLUMNS (seat_id INT PATH '$')) j1
+        ON j1.seat_id = s.seat_id
      WHERE s.screen_id <> v_screen_id;
     IF v_cnt > 0 THEN
         SIGNAL SQLSTATE '45000'
@@ -230,8 +240,8 @@ BEGIN
     SELECT COUNT(*) INTO v_cnt
       FROM tickets t
       JOIN reservations r ON r.reservation_id = t.reservation_id
-      JOIN JSON_TABLE(p_seat_ids, '$[*]' COLUMNS (seat_id INT PATH '$')) j
-        ON j.seat_id = t.seat_id
+      JOIN JSON_TABLE(p_seat_ids, '$[*]' COLUMNS (seat_id INT PATH '$')) j2
+        ON j2.seat_id = t.seat_id
      WHERE r.showtime_id = p_showtime_id;
     IF v_cnt > 0 THEN
         SIGNAL SQLSTATE '45000'
@@ -241,8 +251,8 @@ BEGIN
     /* 2c – none locked by **other** users and still valid */
     SELECT COUNT(*) INTO v_cnt
       FROM seat_locks l
-      JOIN JSON_TABLE(p_seat_ids, '$[*]' COLUMNS (seat_id INT PATH '$')) j
-        ON j.seat_id = l.seat_id
+      JOIN JSON_TABLE(p_seat_ids, '$[*]' COLUMNS (seat_id INT PATH '$')) j3
+        ON j3.seat_id = l.seat_id
      WHERE l.showtime_id = p_showtime_id
        AND l.user_id <> p_user_id
        AND l.expires_at > v_now;
@@ -274,8 +284,8 @@ BEGIN
                 WHEN '3D' THEN 1.25
                 WHEN 'IMAX' THEN 1.50 END) AS price
       FROM seats s
-      JOIN JSON_TABLE(p_seat_ids, '$[*]' COLUMNS (seat_id INT PATH '$')) j
-        ON j.seat_id = s.seat_id;
+      JOIN JSON_TABLE(p_seat_ids, '$[*]' COLUMNS (seat_id INT PATH '$')) j4
+        ON j4.seat_id = s.seat_id;
 
     /* --------- 5. Update reservation total & set to confirmed */
     UPDATE reservations
@@ -287,7 +297,7 @@ BEGIN
      WHERE user_id = p_user_id
        AND showtime_id = p_showtime_id
        AND seat_id IN (SELECT seat_id
-                         FROM JSON_TABLE(p_seat_ids,'$[*]' COLUMNS (seat_id INT PATH '$')) AS j);
+                         FROM JSON_TABLE(p_seat_ids,'$[*]' COLUMNS (seat_id INT PATH '$')) AS j5);
 
     COMMIT;
 END//
@@ -373,17 +383,134 @@ WHERE
       t.ticket_id IS NULL -- not sold
   AND l.seat_id IS NULL; -- not locked
 
--- VIEW: Reservation totals
-CREATE OR REPLACE VIEW v_reservation_totals AS
+-- VIEW: Active showtimes with details
+-- This view returns only future showtimes (with 30-minute buffer) for open movies
+-- Includes all necessary joins to minimize backend queries
+CREATE OR REPLACE VIEW v_active_showtimes_details AS
 SELECT 
-    r.reservation_id,
-    r.user_id,
-    r.showtime_id,
-    r.status,
-    COALESCE(SUM(t.price), 0.00) AS total_amount
-FROM 
-    reservations r
-LEFT JOIN 
-    tickets t ON r.reservation_id = t.reservation_id
-GROUP BY 
-    r.reservation_id, r.user_id, r.showtime_id, r.status;
+    s.showtime_id,
+    s.movie_id,
+    s.screen_id,
+    s.start_time,
+    s.end_time,
+    m.title AS movie_title,
+    m.duration AS movie_duration,
+    m.rating AS movie_rating,
+    m.description AS movie_description,
+    m.director AS movie_director,
+    m.cast AS movie_cast,
+    m.genre AS movie_genre,
+    m.poster_url AS movie_poster_url,
+    m.release_date AS movie_release_date,
+    sc.name AS screen_name,
+    sc.screen_format,
+    c.cinema_id,
+    c.name AS cinema_name,
+    c.address AS cinema_address,
+    c.city AS cinema_city
+FROM showtimes s
+JOIN movies m ON m.movie_id = s.movie_id
+JOIN screens sc ON sc.screen_id = s.screen_id
+JOIN cinemas c ON c.cinema_id = sc.cinema_id
+WHERE s.start_time > DATE_ADD(NOW(), INTERVAL 30 MINUTE)
+  AND m.status = 'open'
+ORDER BY s.start_time;
+
+-- VIEW: Admin revenue summary
+-- Single-row dashboard summary with key revenue metrics across time periods and categories
+CREATE OR REPLACE VIEW v_admin_revenue_summary AS
+SELECT 
+    -- Time-based revenue metrics
+    SUM(CASE WHEN DATE(t.issued_at) = CURDATE() THEN t.price ELSE 0 END) AS revenue_today,
+    SUM(CASE WHEN t.issued_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN t.price ELSE 0 END) AS revenue_this_week,
+    SUM(CASE WHEN t.issued_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN t.price ELSE 0 END) AS revenue_this_month,
+    SUM(t.price) AS revenue_total,
+    
+    -- Ticket volume metrics  
+    COUNT(CASE WHEN DATE(t.issued_at) = CURDATE() THEN 1 END) AS tickets_today,
+    COUNT(CASE WHEN t.issued_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 END) AS tickets_this_week,
+    COUNT(CASE WHEN t.issued_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) AS tickets_this_month,
+    COUNT(t.ticket_id) AS tickets_total,
+    
+    -- Average pricing metrics
+    COALESCE(AVG(CASE WHEN DATE(t.issued_at) = CURDATE() THEN t.price END), 0) AS avg_price_today,
+    COALESCE(AVG(CASE WHEN t.issued_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN t.price END), 0) AS avg_price_this_week,
+    COALESCE(AVG(CASE WHEN t.issued_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN t.price END), 0) AS avg_price_this_month,
+    
+    -- Revenue by seat class
+    SUM(CASE WHEN s.seat_class = 'standard' THEN t.price ELSE 0 END) AS revenue_standard_seats,
+    SUM(CASE WHEN s.seat_class = 'premium' THEN t.price ELSE 0 END) AS revenue_premium_seats,
+    
+    -- Revenue by screen format
+    SUM(CASE WHEN sc.screen_format = '2D' THEN t.price ELSE 0 END) AS revenue_2d,
+    SUM(CASE WHEN sc.screen_format = '3D' THEN t.price ELSE 0 END) AS revenue_3d,
+    SUM(CASE WHEN sc.screen_format = 'IMAX' THEN t.price ELSE 0 END) AS revenue_imax
+    
+FROM tickets t
+JOIN reservations r ON r.reservation_id = t.reservation_id AND r.status = 'confirmed'
+JOIN seats s ON s.seat_id = t.seat_id
+JOIN showtimes st ON st.showtime_id = r.showtime_id  
+JOIN screens sc ON sc.screen_id = st.screen_id;
+
+-- VIEW: Top performing movies
+-- Movie leaderboard with performance metrics and composite scoring
+CREATE OR REPLACE VIEW v_top_performing_movies AS
+SELECT 
+    m.movie_id,
+    m.title,
+    m.genre,
+    m.director,
+    m.rating,
+    m.release_date,
+    m.status,
+    m.poster_url,
+    
+    -- Volume metrics
+    COALESCE(perf.total_showtimes, 0) AS total_showtimes,
+    COALESCE(perf.total_tickets_sold, 0) AS total_tickets_sold,
+    
+    -- Revenue metrics
+    COALESCE(perf.total_revenue, 0.00) AS total_revenue,
+    COALESCE(perf.avg_revenue_per_showtime, 0.00) AS avg_revenue_per_showtime,
+    COALESCE(perf.avg_ticket_price, 0.00) AS avg_ticket_price,
+    
+    -- Performance metrics
+    ROUND(COALESCE(perf.avg_occupancy_rate, 0), 2) AS avg_occupancy_rate_percent,
+    ROUND(COALESCE(perf.total_revenue, 0) / NULLIF(perf.total_showtimes, 0), 2) AS revenue_efficiency,
+    
+    -- Ranking scores (normalized 0-100)
+    ROUND(
+        (0.4 * COALESCE(perf.revenue_rank, 0)) + 
+        (0.3 * COALESCE(perf.occupancy_rank, 0)) + 
+        (0.3 * COALESCE(perf.volume_rank, 0)), 2
+    ) AS composite_performance_score,
+    
+    -- Individual ranking components for transparency
+    ROUND(COALESCE(perf.revenue_rank, 0), 2) AS revenue_rank_score,
+    ROUND(COALESCE(perf.occupancy_rank, 0), 2) AS occupancy_rank_score,
+    ROUND(COALESCE(perf.volume_rank, 0), 2) AS volume_rank_score
+
+FROM movies m
+LEFT JOIN (
+    SELECT 
+        st.movie_id,
+        COUNT(DISTINCT st.showtime_id) AS total_showtimes,
+        COUNT(t.ticket_id) AS total_tickets_sold,
+        SUM(t.price) AS total_revenue,
+        AVG(t.price) AS avg_ticket_price,
+        SUM(t.price) / COUNT(DISTINCT st.showtime_id) AS avg_revenue_per_showtime,
+        (COUNT(t.ticket_id) / (COUNT(DISTINCT st.showtime_id) * 96.0)) * 100 AS avg_occupancy_rate,
+        
+        -- Ranking components (higher is better)
+        PERCENT_RANK() OVER (ORDER BY SUM(t.price)) * 100 AS revenue_rank,
+        PERCENT_RANK() OVER (ORDER BY (COUNT(t.ticket_id) / (COUNT(DISTINCT st.showtime_id) * 96.0))) * 100 AS occupancy_rank,
+        PERCENT_RANK() OVER (ORDER BY COUNT(t.ticket_id)) * 100 AS volume_rank
+        
+    FROM showtimes st
+    LEFT JOIN reservations r ON r.showtime_id = st.showtime_id AND r.status = 'confirmed'  
+    LEFT JOIN tickets t ON t.reservation_id = r.reservation_id
+    WHERE st.start_time >= DATE_SUB(NOW(), INTERVAL 90 DAY)  -- Last 90 days
+    GROUP BY st.movie_id
+) perf ON perf.movie_id = m.movie_id
+
+ORDER BY composite_performance_score DESC, total_revenue DESC;

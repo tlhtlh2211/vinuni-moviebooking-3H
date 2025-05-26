@@ -99,7 +99,7 @@ export default function SeatDemo() {
         </label>
       </div>
       
-      <div className="grid grid-cols-8 gap-4 mb-6">
+      <div className="grid grid-cols-12 gap-4 mb-6 max-w-6xl mx-auto">
         {seats.map(seat => (
           <button
             key={seat.seat_id}

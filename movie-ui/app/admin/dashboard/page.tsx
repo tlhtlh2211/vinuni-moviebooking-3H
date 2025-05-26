@@ -4,15 +4,36 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Film, Plus, Edit, Trash2, LogOut, BarChart } from "lucide-react"
+import { Film, Plus, LogOut, Trophy } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { motion } from "framer-motion"
 import { UserRole } from "@/types/database"
+
+interface RevenueSummary {
+  revenue_today: number
+  revenue_this_week: number
+  revenue_this_month: number
+  revenue_total: number
+  tickets_today: number
+  tickets_this_week: number
+  tickets_this_month: number
+  tickets_total: number
+  avg_price_today: number
+  avg_price_this_week: number
+  avg_price_this_month: number
+  revenue_standard_seats: number
+  revenue_premium_seats: number
+  revenue_2d: number
+  revenue_3d: number
+  revenue_imax: number
+}
 
 export default function AdminDashboard() {
   const router = useRouter()
   const { user, logout } = useAuth()
   const [isLoading, setIsLoading] = useState(true)
+  const [revenueSummary, setRevenueSummary] = useState<RevenueSummary | null>(null)
+  const [isLoadingRevenue, setIsLoadingRevenue] = useState(true)
 
   // Redirect if not logged in or not an admin
   useEffect(() => {
@@ -25,13 +46,30 @@ export default function AdminDashboard() {
     }
   }, [user, router])
 
-  // In a real app, you would fetch movies from an API or database
-  const movies = [
-    { id: 1, title: "Brutal Action", genre: "Action", time: "14:30", seats: 120, booked: 45 },
-    { id: 2, title: "Raw Comedy", genre: "Comedy", time: "16:45", seats: 100, booked: 78 },
-    { id: 3, title: "Concrete Drama", genre: "Drama", time: "19:00", seats: 120, booked: 32 },
-    { id: 4, title: "Brutalist Horror", genre: "Horror", time: "21:15", seats: 80, booked: 65 },
-  ]
+  // Fetch revenue summary data
+  useEffect(() => {
+    const fetchRevenueSummary = async () => {
+      try {
+        setIsLoadingRevenue(true)
+        const response = await fetch('/api/v1/admin/analytics/revenue-summary')
+        if (response.ok) {
+          const data = await response.json()
+          if (data.status === 'success') {
+            setRevenueSummary(data.data)
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching revenue summary:', error)
+      } finally {
+        setIsLoadingRevenue(false)
+      }
+    }
+
+    if (user && user.role === UserRole.ADMIN) {
+      fetchRevenueSummary()
+    }
+  }, [user])
+
 
   const handleLogout = () => {
     logout()
@@ -121,20 +159,28 @@ export default function AdminDashboard() {
             <h3 className="text-2xl font-mono font-bold mb-4">QUICK STATS</h3>
             <div className="grid grid-cols-2 gap-4">
               <motion.div whileHover={{ scale: 1.05 }} className="bg-white p-4 border-4 border-black">
-                <p className="font-mono text-lg">TOTAL MOVIES</p>
-                <p className="font-mono font-bold text-4xl">4</p>
+                <p className="font-mono text-lg">REVENUE TODAY</p>
+                <p className="font-mono font-bold text-4xl">
+                  {isLoadingRevenue ? "..." : `$${Number(revenueSummary?.revenue_today || 0).toFixed(2)}`}
+                </p>
               </motion.div>
               <motion.div whileHover={{ scale: 1.05 }} className="bg-white p-4 border-4 border-black">
-                <p className="font-mono text-lg">TOTAL BOOKINGS</p>
-                <p className="font-mono font-bold text-4xl">220</p>
+                <p className="font-mono text-lg">TOTAL REVENUE</p>
+                <p className="font-mono font-bold text-4xl">
+                  {isLoadingRevenue ? "..." : `$${Number(revenueSummary?.revenue_total || 0).toFixed(2)}`}
+                </p>
               </motion.div>
               <motion.div whileHover={{ scale: 1.05 }} className="bg-white p-4 border-4 border-black">
-                <p className="font-mono text-lg">AVAILABLE SEATS</p>
-                <p className="font-mono font-bold text-4xl">300</p>
+                <p className="font-mono text-lg">TICKETS TODAY</p>
+                <p className="font-mono font-bold text-4xl">
+                  {isLoadingRevenue ? "..." : revenueSummary?.tickets_today || 0}
+                </p>
               </motion.div>
               <motion.div whileHover={{ scale: 1.05 }} className="bg-white p-4 border-4 border-black">
-                <p className="font-mono text-lg">OCCUPANCY</p>
-                <p className="font-mono font-bold text-4xl">55%</p>
+                <p className="font-mono text-lg">TOTAL TICKETS</p>
+                <p className="font-mono font-bold text-4xl">
+                  {isLoadingRevenue ? "..." : revenueSummary?.tickets_total || 0}
+                </p>
               </motion.div>
             </div>
           </motion.div>
@@ -145,71 +191,66 @@ export default function AdminDashboard() {
             transition={{ duration: 0.5, delay: 0.3 }}
             className="bg-blue-500 p-6 border-8 border-black"
           >
-            <h3 className="text-2xl font-mono font-bold mb-4 text-white">REVENUE CHART</h3>
+            <h3 className="text-2xl font-mono font-bold mb-4 text-white">REVENUE BREAKDOWN</h3>
             <motion.div
               initial={{ scale: 0.9 }}
               animate={{ scale: 1 }}
               transition={{ duration: 0.5, delay: 0.5 }}
-              className="bg-white p-4 border-4 border-black h-48 flex items-center justify-center"
+              className="bg-white p-4 border-4 border-black"
             >
-              <BarChart className="h-32 w-32" />
+              {isLoadingRevenue ? (
+                <div className="h-48 flex items-center justify-center">
+                  <p className="font-mono text-xl">LOADING...</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="font-mono font-bold">2D REVENUE:</span>
+                    <span className="font-mono text-xl">${Number(revenueSummary?.revenue_2d || 0).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="font-mono font-bold">3D REVENUE:</span>
+                    <span className="font-mono text-xl">${Number(revenueSummary?.revenue_3d || 0).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="font-mono font-bold">IMAX REVENUE:</span>
+                    <span className="font-mono text-xl">${Number(revenueSummary?.revenue_imax || 0).toFixed(2)}</span>
+                  </div>
+                  <div className="border-t-4 border-black pt-3 mt-3">
+                    <div className="flex justify-between items-center">
+                      <span className="font-mono font-bold">STANDARD SEATS:</span>
+                      <span className="font-mono">${Number(revenueSummary?.revenue_standard_seats || 0).toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="font-mono font-bold">PREMIUM SEATS:</span>
+                      <span className="font-mono">${Number(revenueSummary?.revenue_premium_seats || 0).toFixed(2)}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </motion.div>
           </motion.div>
         </div>
 
+        {/* Analytics Links */}
         <motion.div
           initial={{ y: 50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
-          className="bg-white border-8 border-black p-4"
+          transition={{ duration: 0.5, delay: 0.35 }}
+          className="bg-purple-500 p-6 border-8 border-black mb-8"
         >
-          <h3 className="text-2xl font-mono font-bold mb-4">MANAGE MOVIES</h3>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="bg-black text-white">
-                  <th className="border-4 border-black p-4 font-mono text-left">ID</th>
-                  <th className="border-4 border-black p-4 font-mono text-left">TITLE</th>
-                  <th className="border-4 border-black p-4 font-mono text-left">GENRE</th>
-                  <th className="border-4 border-black p-4 font-mono text-left">TIME</th>
-                  <th className="border-4 border-black p-4 font-mono text-left">SEATS</th>
-                  <th className="border-4 border-black p-4 font-mono text-left">BOOKED</th>
-                  <th className="border-4 border-black p-4 font-mono text-left">ACTIONS</th>
-                </tr>
-              </thead>
-              <tbody>
-                {movies.map((movie, index) => (
-                  <motion.tr
-                    key={movie.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.3, delay: 0.5 + index * 0.1 }}
-                    className="border-b-4 border-black hover:bg-gray-100"
-                  >
-                    <td className="border-4 border-black p-4 font-mono">{movie.id}</td>
-                    <td className="border-4 border-black p-4 font-mono font-bold">{movie.title}</td>
-                    <td className="border-4 border-black p-4 font-mono">{movie.genre}</td>
-                    <td className="border-4 border-black p-4 font-mono">{movie.time}</td>
-                    <td className="border-4 border-black p-4 font-mono">{movie.seats}</td>
-                    <td className="border-4 border-black p-4 font-mono">{movie.booked}</td>
-                    <td className="border-4 border-black p-4 font-mono">
-                      <div className="flex gap-2">
-                        <motion.div whileHover={{ scale: 1.1 }}>
-                          <Button className="bg-blue-500 text-white hover:bg-blue-600 font-mono border-2 border-black p-2 h-auto">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        </motion.div>
-                        <motion.div whileHover={{ scale: 1.1 }}>
-                          <Button className="bg-red-500 text-white hover:bg-red-600 font-mono border-2 border-black p-2 h-auto">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </motion.div>
-                      </div>
-                    </td>
-                  </motion.tr>
-                ))}
-              </tbody>
-            </table>
+          <h3 className="text-2xl font-mono font-bold mb-4 text-white">ANALYTICS & REPORTS</h3>
+          <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
+            <Link href="/admin/analytics/movies">
+              <motion.div 
+                whileHover={{ scale: 1.05 }} 
+                className="bg-white p-4 border-4 border-black cursor-pointer hover:bg-gray-100"
+              >
+                <Trophy className="h-8 w-8 mb-2" />
+                <p className="font-mono font-bold text-lg">TOP PERFORMING MOVIES</p>
+                <p className="font-mono text-sm">View movie leaderboard and performance metrics</p>
+              </motion.div>
+            </Link>
           </div>
         </motion.div>
       </div>

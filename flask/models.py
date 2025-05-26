@@ -57,6 +57,31 @@ class Users(Base):
     seat_locks: Mapped[List['SeatLocks']] = relationship('SeatLocks', back_populates='user')
 
 
+t_v_active_showtimes_details = Table(
+    'v_active_showtimes_details', Base.metadata,
+    Column('showtime_id', Integer, server_default=text("'0'")),
+    Column('movie_id', Integer),
+    Column('screen_id', Integer),
+    Column('start_time', DateTime),
+    Column('end_time', DateTime),
+    Column('movie_title', String(150)),
+    Column('movie_duration', Integer),
+    Column('movie_rating', Enum('G', 'PG', 'PG-13', 'R', 'NC-17'), server_default=text("'G'")),
+    Column('movie_description', Text),
+    Column('movie_director', String(100)),
+    Column('movie_cast', Text),
+    Column('movie_genre', String(50)),
+    Column('movie_poster_url', String(255)),
+    Column('movie_release_date', Date),
+    Column('screen_name', String(50)),
+    Column('screen_format', Enum('2D', '3D', 'IMAX'), server_default=text("'2D'")),
+    Column('cinema_id', Integer, server_default=text("'0'")),
+    Column('cinema_name', String(100)),
+    Column('cinema_address', String(120)),
+    Column('cinema_city', String(60))
+)
+
+
 t_v_available_seats = Table(
     'v_available_seats', Base.metadata,
     Column('showtime_id', Integer, server_default=text("'0'")),

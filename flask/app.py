@@ -39,6 +39,9 @@ def create_app():
     from api.v1.reservations.route import reservations_bp
     app.register_blueprint(reservations_bp, url_prefix='/api/v1/reservations')
     
+    from api.v1.admin.analytics.route import analytics_bp
+    app.register_blueprint(analytics_bp, url_prefix='/api/v1/admin/analytics')
+    
     # DDL-first database initialization
     # Create database tables from DDL-generated models
     with app.app_context():

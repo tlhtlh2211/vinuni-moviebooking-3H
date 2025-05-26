@@ -175,24 +175,29 @@ export default function MovieDetailsPage({ params }: { params: { showtimeId: str
       if (!selectedShowtime) return
 
       try {
-        const response = await fetch(`/api/v1/showtimes/${selectedShowtime}/seats`)
+        // Add timestamp to prevent caching
+        const timestamp = new Date().getTime();
+        const response = await fetch(`/api/v1/showtimes/${selectedShowtime}/seats?t=${timestamp}`, {
+          cache: 'no-store'
+        })
         if (!response.ok) {
           throw new Error("Failed to fetch seats")
         }
         const data = await response.json()
         
-        // Generate mock seats if no data is returned
+        // Check if we got real data from the backend
         const seatsData = data.data || [];
         if (seatsData.length === 0) {
-          // Generate a grid of 8x8 seats
+          // Generate mock seats if no data is returned
+          // Generate a grid of 8x12 seats to match the database structure
           const mockSeats: SeatWithStatus[] = [];
           for (let row = 0; row < 8; row++) {
-            for (let col = 0; col < 8; col++) {
-              const seatId = row * 8 + col + 1;
+            for (let col = 0; col < 12; col++) {
+              const seatId = row * 12 + col + 1; // Match database structure: 12 columns per row
               mockSeats.push({
                 seat_id: seatId,
                 screen_id: 1,
-                seat_class: col < 2 ? SeatClass.STANDARD : SeatClass.PREMIUM,
+                seat_class: row >= 5 ? SeatClass.PREMIUM : SeatClass.STANDARD, // F-H rows are premium
                 seat_label: `${String.fromCharCode(65 + row)}${col + 1}`,
                 row_num: row,
                 col_num: col,
@@ -203,7 +208,18 @@ export default function MovieDetailsPage({ params }: { params: { showtimeId: str
           }
           setSeats(mockSeats);
         } else {
-          setSeats(seatsData);
+          // Convert backend data format to frontend format
+          const convertedSeats: SeatWithStatus[] = seatsData.map((seat: any) => ({
+            seat_id: seat.seat_id,
+            screen_id: seat.screen_id,
+            seat_class: seat.seat_class,
+            seat_label: seat.seat_label,
+            row_num: seat.row_num,
+            col_num: seat.col_num,
+            is_locked: seat.status === 'locked',
+            is_booked: seat.status === 'sold'
+          }));
+          setSeats(convertedSeats);
         }
       } catch (error) {
         console.error("Error fetching seats:", error)
@@ -245,7 +261,7 @@ export default function MovieDetailsPage({ params }: { params: { showtimeId: str
           // Remove from selected seats
           setSelectedSeats(selectedSeats.filter((id) => id !== seatId))
           
-          // Update the seat status in the UI
+          // Update the seat status in the UI to show it's available
           setSeats(prevSeats => 
             prevSeats.map(seat => 
               seat.seat_id === seatId ? { ...seat, is_locked: false } : seat
@@ -339,12 +355,11 @@ export default function MovieDetailsPage({ params }: { params: { showtimeId: str
         const data = await response.json()
         
         // Update the bookingData state with a structure that matches what the UI expects
-        // The API might return { reservation_id, status, etc. } directly
-        // But our UI expects { reservation: { reservation_id, status }, tickets: [] }
+        // Use the actual status from the API response instead of hardcoding "confirmed"
         setBookingData({
           reservation: {
             reservation_id: data.reservation_id || "R-" + Math.floor(Math.random() * 10000),
-            status: data.status || "confirmed",
+            status: data.status, // Use actual status from API
             // Add other reservation fields...
           },
           tickets: data.tickets || selectedSeats.map(seatId => {
@@ -384,6 +399,7 @@ export default function MovieDetailsPage({ params }: { params: { showtimeId: str
     setStep("details")
     setSelectedShowtime(null)
     setSelectedSeats([])
+    setSeats([]) // Clear seats so they will be refetched when user comes back
   }
 
   if (isLoading) {
@@ -651,7 +667,7 @@ export default function MovieDetailsPage({ params }: { params: { showtimeId: str
               <div className="mb-8">
                 <div className="w-full bg-black p-2 text-center text-white font-mono mb-8">SCREEN</div>
 
-                <div className="grid grid-cols-8 gap-4 max-w-3xl mx-auto mb-8">
+                <div className="grid grid-cols-12 gap-4 max-w-4xl mx-auto mb-8">
                   {seats.map((seat) => (
                     <motion.div
                       key={seat.seat_id}

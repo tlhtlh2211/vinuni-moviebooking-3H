@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from models import Seats, SeatLocks, Showtimes, Tickets, Reservations
 from extensions import db
 from datetime import datetime, timedelta
-from sqlalchemy import select
+from sqlalchemy import select, text
 
 seats_bp = Blueprint('seats', __name__)
 
@@ -18,6 +18,18 @@ def get_seats(showtime_id):
         select(Seats).where(Seats.screen_id == showtime.screen_id)
     ).scalars().all()
     
+    # Get available seats using the view for efficiency
+    available_seats_query = text("""
+        SELECT seat_id 
+        FROM v_available_seats 
+        WHERE showtime_id = :showtime_id
+    """)
+    available_result = db.session.execute(
+        available_seats_query, 
+        {'showtime_id': showtime_id}
+    )
+    available_seat_ids = {row.seat_id for row in available_result}
+    
     # Get all locked seats for this showtime
     current_time = datetime.utcnow()
     locks = db.session.execute(
@@ -28,17 +40,16 @@ def get_seats(showtime_id):
     ).scalars().all()
     locked_seat_ids = {lock.seat_id for lock in locks}
     
-    # Get all sold seats (tickets) for this showtime
-    sold_seats = db.session.execute(
-        select(Tickets).join(Reservations).where(
-            Reservations.showtime_id == showtime_id,
-            Reservations.status == 'confirmed'
-        )
-    ).scalars().all()
-    sold_seat_ids = {ticket.seat_id for ticket in sold_seats}
-    
+    # Build result with status determination
     result = []
     for seat in seats:
+        if seat.seat_id in available_seat_ids:
+            status = 'available'
+        elif seat.seat_id in locked_seat_ids:
+            status = 'locked'
+        else:
+            status = 'sold'
+            
         seat_dict = {
             'seat_id': seat.seat_id,
             'screen_id': seat.screen_id,
@@ -46,8 +57,7 @@ def get_seats(showtime_id):
             'seat_label': seat.seat_label,
             'row_num': seat.row_num,
             'col_num': seat.col_num,
-            'status': 'sold' if seat.seat_id in sold_seat_ids else 
-                      'locked' if seat.seat_id in locked_seat_ids else 'available'
+            'status': status
         }
         result.append(seat_dict)
     
