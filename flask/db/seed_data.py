@@ -165,7 +165,7 @@ class DatabaseSeeder:
     def _validate_data(self, cursor):
         """Validate that the seed data was inserted correctly."""
         validations = [
-            ("users", "SELECT COUNT(*) FROM users", 5, "users"),
+            ("users", "SELECT COUNT(*) FROM users", 0, "users"),
             ("movies", "SELECT COUNT(*) FROM movies", 6, "movies"),
             ("showtimes", "SELECT COUNT(*) FROM showtimes", 129, "showtimes"),
         ]

@@ -12,13 +12,6 @@ TRUNCATE TABLE users;
 
 SET FOREIGN_KEY_CHECKS = 1;
 
-INSERT INTO users (email, password_hash, role) VALUES
-('admin@moviebooking.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LwlY7oGvF5U2k.QTu', 'admin'),
-('john.doe@email.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LwlY7oGvF5U2k.QTu', 'customer'),
-('jane.smith@email.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LwlY7oGvF5U2k.QTu', 'customer'),
-('mike.wilson@email.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LwlY7oGvF5U2k.QTu', 'customer'),
-('sara.jones@email.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LwlY7oGvF5U2k.QTu', 'customer');
-
 INSERT INTO cinemas (name, address, city) VALUES
 ('VinUni Cinema', '123 Nguyen Van Cu Street, Gia Lam District', 'Hanoi'),
 ('Downtown Multiplex', '456 Tran Hung Dao Street, Hoan Kiem District', 'Hanoi'),
@@ -228,32 +221,32 @@ INSERT INTO seats (screen_id, seat_class, seat_label, row_num, col_num) VALUES
 
 -- Insert movies (scheduled_close_date will be set automatically by trigger)
 INSERT INTO movies (title, duration, rating, release_date, status, description, director, cast, genre, poster_url) VALUES
-('Avatar: The Way of Water', 192, 'PG-13', '2023-12-16', 'open', 
+('Avatar: The Way of Water', 192, 'PG-13', '2025-05-22', 'open', 
  'Jake Sully lives with his newfound family formed on the planet of Pandora. Once a familiar threat returns to finish what was previously started, Jake must work with Neytiri and the army of the Navi race to protect their planet.',
  'James Cameron', 'Sam Worthington, Zoe Saldana, Sigourney Weaver, Stephen Lang, Kate Winslet',
  'Action', 'https://example.com/avatar2.jpg'),
 
-('Fast X', 141, 'PG-13', '2023-05-19', 'open',
+('Fast X', 141, 'PG-13', '2025-05-22', 'open',
  'Dom Toretto and his family are targeted by the vengeful son of drug kingpin Hernan Reyes.',
  'Louis Leterrier', 'Vin Diesel, Michelle Rodriguez, Tyrese Gibson, Ludacris, John Cena',
  'Action', 'https://example.com/fastx.jpg'),
 
-('Spider-Man: Across the Spider-Verse', 140, 'PG', '2023-06-02', 'open',
+('Spider-Man: Across the Spider-Verse', 140, 'PG', '2025-05-22', 'open',
  'Miles Morales catapults across the Multiverse, where he encounters a team of Spider-People charged with protecting its very existence.',
  'Joaquim Dos Santos', 'Shameik Moore, Hailee Steinfeld, Brian Tyree Henry, Luna Lauren Velez',
  'Animation', 'https://example.com/spiderverse.jpg'),
 
-('The Batman', 176, 'PG-13', '2022-03-04', 'open',
+('The Batman', 176, 'PG-13', '2025-05-22', 'open',
  'When a sadistic serial killer begins murdering key political figures in Gotham, Batman is forced to investigate the citys hidden corruption.',
  'Matt Reeves', 'Robert Pattinson, Zoë Kravitz, Paul Dano, Jeffrey Wright, Colin Farrell',
  'Action', 'https://example.com/batman.jpg'),
 
-('Inception', 148, 'PG-13', '2010-07-16', 'open',
+('Inception', 148, 'PG-13', '2025-05-22', 'open',
  'A thief who steals corporate secrets through the use of dream-sharing technology is given the inverse task of planting an idea into the mind of a C.E.O.',
  'Christopher Nolan', 'Leonardo DiCaprio, Marion Cotillard, Tom Hardy, Elliot Page, Ken Watanabe',
  'Sci-Fi', 'https://example.com/inception.jpg'),
 
-('Dune: Part Two', 165, 'PG-13', '2024-03-01', 'open',
+('Dune: Part Two', 165, 'PG-13', '2025-05-22', 'open',
  'Paul Atreides unites with Chani and the Fremen while seeking revenge against the conspirators who destroyed his family.',
  'Denis Villeneuve', 'Timothée Chalamet, Zendaya, Rebecca Ferguson, Josh Brolin, Austin Butler',
  'Sci-Fi', 'https://example.com/dune2.jpg');

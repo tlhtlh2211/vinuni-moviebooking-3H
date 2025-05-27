@@ -264,10 +264,9 @@ BEGIN
         SET NEW.scheduled_close_date = DATE_ADD(NEW.release_date, INTERVAL 1 MONTH);
     END IF;
     
-    -- Auto-close if scheduled close date has passed (unless manually overridden)
+    -- Auto-close if scheduled close date has passed
     IF NEW.scheduled_close_date IS NOT NULL 
-       AND NEW.scheduled_close_date <= CURDATE() 
-       AND NEW.status = OLD.status -- Only auto-close if status wasn't manually changed
+       AND NEW.scheduled_close_date <= CURDATE()
        AND OLD.status = 'open' THEN
         SET NEW.status = 'closed';
     END IF;
@@ -482,7 +481,7 @@ WHERE
   AND l.seat_id IS NULL; -- not locked
 
 -- VIEW: Active showtimes with details
--- This view returns only future showtimes (with 30-minute buffer) for open movies
+-- This view returns showtimes that haven't ended yet for open movies
 -- Includes all necessary joins to minimize backend queries
 CREATE OR REPLACE VIEW v_active_showtimes_details AS
 SELECT 
@@ -510,7 +509,7 @@ FROM showtimes s
 JOIN movies m ON m.movie_id = s.movie_id
 JOIN screens sc ON sc.screen_id = s.screen_id
 JOIN cinemas c ON c.cinema_id = sc.cinema_id
-WHERE s.start_time > DATE_ADD(NOW(), INTERVAL 30 MINUTE)
+WHERE s.end_time > NOW()
   AND m.status = 'open'
 ORDER BY s.start_time;
 

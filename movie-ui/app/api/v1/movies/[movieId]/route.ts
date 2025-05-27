@@ -10,8 +10,18 @@ export async function GET(request: Request, context: { params: { movieId: string
     const { movieId } = await context.params;
     const movieIdNumber = Number.parseInt(movieId);
 
+    // Get query parameters
+    const { searchParams } = new URL(request.url)
+    const includeShowtimes = searchParams.get('include_showtimes')
+
+    // Build URL with query parameters
+    const url = new URL(`${FLASK_API_BASE_URL}/${movieIdNumber}`)
+    if (includeShowtimes) {
+      url.searchParams.append('include_showtimes', includeShowtimes)
+    }
+
     // Send a request to the Flask API
-    const response = await axios.get(`${FLASK_API_BASE_URL}/${movieIdNumber}`)
+    const response = await axios.get(url.toString())
 
     // Check if the response is successful
     if (response.status === 200) {
