@@ -268,7 +268,14 @@ export default function AdminMoviesAnalytics() {
                     <th className="border-4 border-black p-4 font-mono text-center">TICKETS</th>
                     <th className="border-4 border-black p-4 font-mono text-right">REVENUE</th>
                     <th className="border-4 border-black p-4 font-mono text-center">OCCUPANCY</th>
-                    <th className="border-4 border-black p-4 font-mono text-center">SCORE</th>
+                    <th className="border-4 border-black p-4 font-mono text-center">
+                      <div>SCORE</div>
+                      <div className="text-xs font-normal mt-1">
+                        <span className="text-red-500">REV</span> + 
+                        <span className="text-blue-500 ml-1">OCC</span> + 
+                        <span className="text-green-500 ml-1">VOL</span>
+                      </div>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -320,32 +327,53 @@ export default function AdminMoviesAnalytics() {
                           <div className="font-mono font-bold text-xl mb-2">
                             {movie.composite_performance_score.toFixed(1)}
                           </div>
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-mono">REV:</span>
-                              <div className="bg-gray-200 h-2 flex-1 relative">
-                                <div 
-                                  className="bg-red-500 h-full"
-                                  style={{ width: `${movie.revenue_rank_score}%` }}
-                                />
+                          <div className="space-y-2">
+                            <div className="group relative">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-mono w-8">REV:</span>
+                                <div className="bg-gray-200 h-3 flex-1 relative border border-black">
+                                  <div 
+                                    className="bg-red-500 h-full relative"
+                                    style={{ width: `${movie.revenue_rank_score}%` }}
+                                  >
+                                    <span className="absolute right-1 top-0 text-[10px] font-bold text-white">
+                                      {movie.revenue_rank_score.toFixed(0)}
+                                    </span>
+                                  </div>
+                                </div>
+                                <span className="text-[10px] font-mono text-gray-600">40%</span>
                               </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-mono">OCC:</span>
-                              <div className="bg-gray-200 h-2 flex-1 relative">
-                                <div 
-                                  className="bg-blue-500 h-full"
-                                  style={{ width: `${movie.occupancy_rank_score}%` }}
-                                />
+                            <div className="group relative">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-mono w-8">OCC:</span>
+                                <div className="bg-gray-200 h-3 flex-1 relative border border-black">
+                                  <div 
+                                    className="bg-blue-500 h-full relative"
+                                    style={{ width: `${movie.occupancy_rank_score}%` }}
+                                  >
+                                    <span className="absolute right-1 top-0 text-[10px] font-bold text-white">
+                                      {movie.occupancy_rank_score.toFixed(0)}
+                                    </span>
+                                  </div>
+                                </div>
+                                <span className="text-[10px] font-mono text-gray-600">30%</span>
                               </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-mono">VOL:</span>
-                              <div className="bg-gray-200 h-2 flex-1 relative">
-                                <div 
-                                  className="bg-green-500 h-full"
-                                  style={{ width: `${movie.volume_rank_score}%` }}
-                                />
+                            <div className="group relative">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-mono w-8">VOL:</span>
+                                <div className="bg-gray-200 h-3 flex-1 relative border border-black">
+                                  <div 
+                                    className="bg-green-500 h-full relative"
+                                    style={{ width: `${movie.volume_rank_score}%` }}
+                                  >
+                                    <span className="absolute right-1 top-0 text-[10px] font-bold text-white">
+                                      {movie.volume_rank_score.toFixed(0)}
+                                    </span>
+                                  </div>
+                                </div>
+                                <span className="text-[10px] font-mono text-gray-600">30%</span>
                               </div>
                             </div>
                           </div>
@@ -359,23 +387,112 @@ export default function AdminMoviesAnalytics() {
           )}
         </motion.div>
 
-        {/* Legend */}
+        {/* Scoring Methodology Explanation */}
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.5 }}
-          className="mt-6 bg-gray-100 border-4 border-black p-4"
+          className="mt-6 space-y-4"
         >
-          <h3 className="font-mono font-bold text-lg mb-2">SCORING METHODOLOGY</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 font-mono text-sm">
-            <div>
-              <span className="font-bold">REVENUE SCORE (40%):</span> Based on total revenue compared to other movies
+          {/* Main Methodology Box */}
+          <div className="bg-black text-white border-8 border-yellow-400 p-6">
+            <h3 className="font-mono font-bold text-2xl mb-4 flex items-center gap-2">
+              <Trophy className="h-6 w-6 text-yellow-400" />
+              SCORING METHODOLOGY
+            </h3>
+            <p className="font-mono text-lg mb-4">
+              COMPOSITE PERFORMANCE SCORE = 40% REVENUE + 30% OCCUPANCY + 30% VOLUME
+            </p>
+            <p className="font-mono text-sm text-gray-300">
+              Each metric is ranked using percentile scoring (0-100) based on the last 90 days of performance data.
+              Higher scores indicate better relative performance compared to other movies.
+            </p>
+          </div>
+
+          {/* Detailed Metrics Breakdown */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Revenue Score */}
+            <div className="bg-red-100 border-4 border-red-500 p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <DollarSign className="h-5 w-5" />
+                <h4 className="font-mono font-bold text-lg">REVENUE SCORE (40%)</h4>
+              </div>
+              <div className="space-y-2 font-mono text-sm">
+                <p className="font-bold">WHAT IT MEASURES:</p>
+                <ul className="list-disc list-inside space-y-1 text-gray-700">
+                  <li>Total ticket revenue generated</li>
+                  <li>Financial performance</li>
+                  <li>Box office success</li>
+                </ul>
+                <p className="mt-2 text-xs text-gray-600">
+                  CALCULATION: Percentile rank of total revenue across all movies
+                </p>
+              </div>
             </div>
-            <div>
-              <span className="font-bold">OCCUPANCY SCORE (30%):</span> Based on average seat occupancy rate
+
+            {/* Occupancy Score */}
+            <div className="bg-blue-100 border-4 border-blue-500 p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Users className="h-5 w-5" />
+                <h4 className="font-mono font-bold text-lg">OCCUPANCY SCORE (30%)</h4>
+              </div>
+              <div className="space-y-2 font-mono text-sm">
+                <p className="font-bold">WHAT IT MEASURES:</p>
+                <ul className="list-disc list-inside space-y-1 text-gray-700">
+                  <li>Average seat fill rate</li>
+                  <li>Operational efficiency</li>
+                  <li>Audience appeal per showing</li>
+                </ul>
+                <p className="mt-2 text-xs text-gray-600">
+                  CALCULATION: Percentile rank of (tickets sold ÷ total seats available)
+                </p>
+              </div>
             </div>
-            <div>
-              <span className="font-bold">VOLUME SCORE (30%):</span> Based on total tickets sold
+
+            {/* Volume Score */}
+            <div className="bg-green-100 border-4 border-green-500 p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <TrendingUp className="h-5 w-5" />
+                <h4 className="font-mono font-bold text-lg">VOLUME SCORE (30%)</h4>
+              </div>
+              <div className="space-y-2 font-mono text-sm">
+                <p className="font-bold">WHAT IT MEASURES:</p>
+                <ul className="list-disc list-inside space-y-1 text-gray-700">
+                  <li>Total tickets sold</li>
+                  <li>Overall popularity</li>
+                  <li>Audience reach</li>
+                </ul>
+                <p className="mt-2 text-xs text-gray-600">
+                  CALCULATION: Percentile rank of total ticket count
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Additional Metrics Info */}
+          <div className="bg-gray-100 border-4 border-black p-4">
+            <h4 className="font-mono font-bold text-lg mb-2">ADDITIONAL PERFORMANCE METRICS</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 font-mono text-sm">
+              <div>
+                <p className="font-bold">REVENUE EFFICIENCY:</p>
+                <p className="text-gray-700">Average revenue per showtime - indicates how well each screening performs financially</p>
+              </div>
+              <div>
+                <p className="font-bold">AVERAGE TICKET PRICE:</p>
+                <p className="text-gray-700">Reflects seat class mix and screen format (2D/3D/IMAX) premium pricing</p>
+              </div>
+              <div>
+                <p className="font-bold">COLOR CODING:</p>
+                <p className="text-gray-700">
+                  Occupancy rates: <span className="text-green-600 font-bold">≥75% GREEN</span>, 
+                  <span className="text-yellow-600 font-bold ml-2">50-74% YELLOW</span>, 
+                  <span className="text-red-600 font-bold ml-2">&lt;50% RED</span>
+                </p>
+              </div>
+              <div>
+                <p className="font-bold">DATA WINDOW:</p>
+                <p className="text-gray-700">All calculations use the last 90 days of performance data for fair comparison</p>
+              </div>
             </div>
           </div>
         </motion.div>
