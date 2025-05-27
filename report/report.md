@@ -562,7 +562,7 @@ flowchart TD
     style Admin fill:#fce4ec
 ```
 
-## 9. Component Interaction Sequence
+## 8. Component Interaction Sequence
 
 ```mermaid
 sequenceDiagram

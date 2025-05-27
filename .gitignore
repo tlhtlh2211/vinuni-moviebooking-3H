@@ -6,3 +6,4 @@ __pycache__/
 metabase.db.trace.db
 metabase.db.mv.db
 metabase.jar
+.DS_Store
