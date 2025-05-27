@@ -111,8 +111,6 @@ python seed_data.py
 # 3. Add test users
 python python add_test_users.py
 
-# Verify database creation
-mysql -u root -p -e "SHOW DATABASES; USE movie_booking; SHOW TABLES;"
 ```
 
 ### Frontend Setup
