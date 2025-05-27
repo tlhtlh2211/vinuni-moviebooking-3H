@@ -111,6 +111,19 @@ export default function MovieDetailsPage({ params }: { params: { movieId: string
     return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`
   }
 
+  // Calculate seat price based on seat class and screen format
+  const calculateSeatPrice = (seatClass: SeatClass, screenFormat: string = '2D'): number => {
+    // Base prices from backend
+    const basePrice = seatClass === SeatClass.PREMIUM ? 16.00 : 8.00
+    
+    // Format multipliers from backend
+    const formatMultiplier = screenFormat === 'IMAX' ? 1.5 : 
+                           screenFormat === '3D' ? 1.25 : 
+                           1.0
+    
+    return basePrice * formatMultiplier
+  }
+
   // Fetch movie data
   useEffect(() => {
     const fetchMovie = async () => {
@@ -375,7 +388,10 @@ export default function MovieDetailsPage({ params }: { params: { movieId: string
           },
           tickets: data.tickets || selectedSeats.map(seatId => {
             const seat = seats.find(s => s.seat_id === seatId);
-            const price = seat?.seat_class === SeatClass.PREMIUM ? 15 : 12;
+            // Get screen format from selected showtime
+            const screenFormat = movie?.showtimes?.find((s) => s.showtime_id === selectedShowtime)?.screen?.screen_format || '2D'
+            // Use the calculateSeatPrice function with correct base prices and format multipliers
+            const price = seat ? calculateSeatPrice(seat.seat_class, screenFormat) : 0;
             return {
               ticket_id: "T-" + seatId,
               seat_id: seatId,
@@ -707,11 +723,11 @@ export default function MovieDetailsPage({ params }: { params: { movieId: string
                 <div className="flex justify-center gap-4 mb-6 flex-wrap">
                   <div className="flex items-center gap-2">
                     <div className="w-6 h-6 bg-white border-2 border-black"></div>
-                    <span className="font-mono">Standard</span>
+                    <span className="font-mono">Standard ($8)</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-6 h-6 bg-yellow-200 border-2 border-black"></div>
-                    <span className="font-mono">Premium</span>
+                    <span className="font-mono">Premium ($16)</span>
                   </div>
 
                   <div className="flex items-center gap-2">
@@ -723,6 +739,19 @@ export default function MovieDetailsPage({ params }: { params: { movieId: string
                     <span className="font-mono">Unavailable</span>
                   </div>
                 </div>
+                
+                {/* Screen format and pricing info */}
+                {(() => {
+                  const screenFormat = movie?.showtimes?.find((s) => s.showtime_id === selectedShowtime)?.screen?.screen_format || '2D';
+                  const formatMultiplier = screenFormat === 'IMAX' ? 1.5 : screenFormat === '3D' ? 1.25 : 1.0;
+                  return formatMultiplier > 1.0 && (
+                    <div className="text-center mb-4 p-3 bg-blue-100 border-2 border-blue-500">
+                      <span className="font-mono text-sm">
+                        {screenFormat} FORMAT: Prices multiplied by {formatMultiplier}x
+                      </span>
+                    </div>
+                  );
+                })()}
               </div>
 
               <div className="bg-yellow-400 border-4 border-black p-4 mb-6">
@@ -742,9 +771,11 @@ export default function MovieDetailsPage({ params }: { params: { movieId: string
                       {selectedSeats
                         .reduce((total, seatId) => {
                           const seat = seats.find((s) => s.seat_id === seatId)
-                          // Price based on seat class
-                          const price = seat?.seat_class === SeatClass.PREMIUM ? 15 : 12
-                          return total + (price || 0)
+                          // Get screen format from selected showtime
+                          const screenFormat = movie?.showtimes?.find((s) => s.showtime_id === selectedShowtime)?.screen?.screen_format || '2D'
+                          // Use the calculateSeatPrice function with correct base prices and format multipliers
+                          const price = seat ? calculateSeatPrice(seat.seat_class, screenFormat) : 0
+                          return total + price
                         }, 0)
                         .toFixed(2)}
                     </div>
