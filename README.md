@@ -139,4 +139,5 @@ sqlacodegen mysql+pymysql://root:12345678@localhost:3306/movie_booking > models.
 # Run the Flask application
 python app.py
 ```
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/tlhtlh2211/vinuni-moviebooking-3H)
 
