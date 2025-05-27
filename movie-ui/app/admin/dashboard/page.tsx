@@ -4,10 +4,11 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Film, Plus, LogOut, Trophy } from "lucide-react"
+import { Film, LogOut, Trophy, Calendar } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { motion } from "framer-motion"
 import { UserRole } from "@/types/database"
+import { AddMovieModal } from "@/components/admin/AddMovieModal"
 
 interface RevenueSummary {
   revenue_today: number
@@ -140,12 +141,11 @@ export default function AdminDashboard() {
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.3 }}
-            whileHover={{ scale: 1.05 }}
           >
-            <Button className="bg-green-500 text-white hover:bg-green-600 font-mono text-xl p-6 border-4 border-black flex items-center gap-2">
-              <Plus className="h-6 w-6" />
-              ADD NEW MOVIE
-            </Button>
+            <AddMovieModal onSuccess={() => {
+              // Optionally refresh data or show success message
+              console.log("Movie added successfully!")
+            }} />
           </motion.div>
         </div>
 
@@ -240,7 +240,7 @@ export default function AdminDashboard() {
           className="bg-purple-500 p-6 border-8 border-black mb-8"
         >
           <h3 className="text-2xl font-mono font-bold mb-4 text-white">ANALYTICS & REPORTS</h3>
-          <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Link href="/admin/analytics/movies">
               <motion.div 
                 whileHover={{ scale: 1.05 }} 
@@ -249,6 +249,16 @@ export default function AdminDashboard() {
                 <Trophy className="h-8 w-8 mb-2" />
                 <p className="font-mono font-bold text-lg">TOP PERFORMING MOVIES</p>
                 <p className="font-mono text-sm">View movie leaderboard and performance metrics</p>
+              </motion.div>
+            </Link>
+            <Link href="/admin/analytics/timeslots">
+              <motion.div 
+                whileHover={{ scale: 1.05 }} 
+                className="bg-white p-4 border-4 border-black cursor-pointer hover:bg-gray-100"
+              >
+                <Calendar className="h-8 w-8 mb-2" />
+                <p className="font-mono font-bold text-lg">TIMESLOT MANAGEMENT</p>
+                <p className="font-mono text-sm">View and delete showtimes across all screens</p>
               </motion.div>
             </Link>
           </div>

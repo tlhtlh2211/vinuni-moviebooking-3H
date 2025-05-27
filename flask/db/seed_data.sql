@@ -12,13 +12,6 @@ TRUNCATE TABLE users;
 
 SET FOREIGN_KEY_CHECKS = 1;
 
-INSERT INTO users (email, password_hash, role) VALUES
-('admin@moviebooking.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LwlY7oGvF5U2k.QTu', 'admin'),
-('john.doe@email.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LwlY7oGvF5U2k.QTu', 'customer'),
-('jane.smith@email.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LwlY7oGvF5U2k.QTu', 'customer'),
-('mike.wilson@email.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LwlY7oGvF5U2k.QTu', 'customer'),
-('sara.jones@email.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LwlY7oGvF5U2k.QTu', 'customer');
-
 INSERT INTO cinemas (name, address, city) VALUES
 ('VinUni Cinema', '123 Nguyen Van Cu Street, Gia Lam District', 'Hanoi'),
 ('Downtown Multiplex', '456 Tran Hung Dao Street, Hoan Kiem District', 'Hanoi'),
@@ -37,7 +30,7 @@ INSERT INTO screens (cinema_id, name, screen_format) VALUES
 -- Rows A-E: Standard seats (60 seats)
 -- Rows F-H: Premium seats (36 seats)
 
--- Screen 1
+-- VinUni Screen 1
 INSERT INTO seats (screen_id, seat_class, seat_label, row_num, col_num) VALUES
 (1, 'standard', 'A1', 1, 1), (1, 'standard', 'A2', 1, 2), (1, 'standard', 'A3', 1, 3), (1, 'standard', 'A4', 1, 4),
 (1, 'standard', 'A5', 1, 5), (1, 'standard', 'A6', 1, 6), (1, 'standard', 'A7', 1, 7), (1, 'standard', 'A8', 1, 8),
@@ -64,7 +57,7 @@ INSERT INTO seats (screen_id, seat_class, seat_label, row_num, col_num) VALUES
 (1, 'premium', 'H5', 8, 5), (1, 'premium', 'H6', 8, 6), (1, 'premium', 'H7', 8, 7), (1, 'premium', 'H8', 8, 8),
 (1, 'premium', 'H9', 8, 9), (1, 'premium', 'H10', 8, 10), (1, 'premium', 'H11', 8, 11), (1, 'premium', 'H12', 8, 12);
 
--- Screen 2
+-- VinUni Screen 2
 INSERT INTO seats (screen_id, seat_class, seat_label, row_num, col_num) VALUES
 (2, 'standard', 'A1', 1, 1), (2, 'standard', 'A2', 1, 2), (2, 'standard', 'A3', 1, 3), (2, 'standard', 'A4', 1, 4),
 (2, 'standard', 'A5', 1, 5), (2, 'standard', 'A6', 1, 6), (2, 'standard', 'A7', 1, 7), (2, 'standard', 'A8', 1, 8),
@@ -91,7 +84,7 @@ INSERT INTO seats (screen_id, seat_class, seat_label, row_num, col_num) VALUES
 (2, 'premium', 'H5', 8, 5), (2, 'premium', 'H6', 8, 6), (2, 'premium', 'H7', 8, 7), (2, 'premium', 'H8', 8, 8),
 (2, 'premium', 'H9', 8, 9), (2, 'premium', 'H10', 8, 10), (2, 'premium', 'H11', 8, 11), (2, 'premium', 'H12', 8, 12);
 
--- Screen 3
+-- VinUni IMAX
 INSERT INTO seats (screen_id, seat_class, seat_label, row_num, col_num) VALUES
 (3, 'standard', 'A1', 1, 1), (3, 'standard', 'A2', 1, 2), (3, 'standard', 'A3', 1, 3), (3, 'standard', 'A4', 1, 4),
 (3, 'standard', 'A5', 1, 5), (3, 'standard', 'A6', 1, 6), (3, 'standard', 'A7', 1, 7), (3, 'standard', 'A8', 1, 8),
@@ -118,7 +111,7 @@ INSERT INTO seats (screen_id, seat_class, seat_label, row_num, col_num) VALUES
 (3, 'premium', 'H5', 8, 5), (3, 'premium', 'H6', 8, 6), (3, 'premium', 'H7', 8, 7), (3, 'premium', 'H8', 8, 8),
 (3, 'premium', 'H9', 8, 9), (3, 'premium', 'H10', 8, 10), (3, 'premium', 'H11', 8, 11), (3, 'premium', 'H12', 8, 12);
 
--- Screen 4
+-- Downtown Screen 1
 INSERT INTO seats (screen_id, seat_class, seat_label, row_num, col_num) VALUES
 (4, 'standard', 'A1', 1, 1), (4, 'standard', 'A2', 1, 2), (4, 'standard', 'A3', 1, 3), (4, 'standard', 'A4', 1, 4),
 (4, 'standard', 'A5', 1, 5), (4, 'standard', 'A6', 1, 6), (4, 'standard', 'A7', 1, 7), (4, 'standard', 'A8', 1, 8),
@@ -145,7 +138,7 @@ INSERT INTO seats (screen_id, seat_class, seat_label, row_num, col_num) VALUES
 (4, 'premium', 'H5', 8, 5), (4, 'premium', 'H6', 8, 6), (4, 'premium', 'H7', 8, 7), (4, 'premium', 'H8', 8, 8),
 (4, 'premium', 'H9', 8, 9), (4, 'premium', 'H10', 8, 10), (4, 'premium', 'H11', 8, 11), (4, 'premium', 'H12', 8, 12);
 
--- Screen 5
+-- Downtown Screen 2
 INSERT INTO seats (screen_id, seat_class, seat_label, row_num, col_num) VALUES
 (5, 'standard', 'A1', 1, 1), (5, 'standard', 'A2', 1, 2), (5, 'standard', 'A3', 1, 3), (5, 'standard', 'A4', 1, 4),
 (5, 'standard', 'A5', 1, 5), (5, 'standard', 'A6', 1, 6), (5, 'standard', 'A7', 1, 7), (5, 'standard', 'A8', 1, 8),
@@ -172,7 +165,7 @@ INSERT INTO seats (screen_id, seat_class, seat_label, row_num, col_num) VALUES
 (5, 'premium', 'H5', 8, 5), (5, 'premium', 'H6', 8, 6), (5, 'premium', 'H7', 8, 7), (5, 'premium', 'H8', 8, 8),
 (5, 'premium', 'H9', 8, 9), (5, 'premium', 'H10', 8, 10), (5, 'premium', 'H11', 8, 11), (5, 'premium', 'H12', 8, 12);
 
--- Screen 6
+-- Galaxy Screen 1
 INSERT INTO seats (screen_id, seat_class, seat_label, row_num, col_num) VALUES
 (6, 'standard', 'A1', 1, 1), (6, 'standard', 'A2', 1, 2), (6, 'standard', 'A3', 1, 3), (6, 'standard', 'A4', 1, 4),
 (6, 'standard', 'A5', 1, 5), (6, 'standard', 'A6', 1, 6), (6, 'standard', 'A7', 1, 7), (6, 'standard', 'A8', 1, 8),
@@ -199,7 +192,7 @@ INSERT INTO seats (screen_id, seat_class, seat_label, row_num, col_num) VALUES
 (6, 'premium', 'H5', 8, 5), (6, 'premium', 'H6', 8, 6), (6, 'premium', 'H7', 8, 7), (6, 'premium', 'H8', 8, 8),
 (6, 'premium', 'H9', 8, 9), (6, 'premium', 'H10', 8, 10), (6, 'premium', 'H11', 8, 11), (6, 'premium', 'H12', 8, 12);
 
--- Screen 7
+-- Galaxy Screen 2
 INSERT INTO seats (screen_id, seat_class, seat_label, row_num, col_num) VALUES
 (7, 'standard', 'A1', 1, 1), (7, 'standard', 'A2', 1, 2), (7, 'standard', 'A3', 1, 3), (7, 'standard', 'A4', 1, 4),
 (7, 'standard', 'A5', 1, 5), (7, 'standard', 'A6', 1, 6), (7, 'standard', 'A7', 1, 7), (7, 'standard', 'A8', 1, 8),
@@ -226,33 +219,34 @@ INSERT INTO seats (screen_id, seat_class, seat_label, row_num, col_num) VALUES
 (7, 'premium', 'H5', 8, 5), (7, 'premium', 'H6', 8, 6), (7, 'premium', 'H7', 8, 7), (7, 'premium', 'H8', 8, 8),
 (7, 'premium', 'H9', 8, 9), (7, 'premium', 'H10', 8, 10), (7, 'premium', 'H11', 8, 11), (7, 'premium', 'H12', 8, 12);
 
+-- Insert movies (scheduled_close_date will be set automatically by trigger)
 INSERT INTO movies (title, duration, rating, release_date, status, description, director, cast, genre, poster_url) VALUES
-('Avatar: The Way of Water', 192, 'PG-13', '2023-12-16', 'open', 
+('Avatar: The Way of Water', 192, 'PG-13', '2025-05-22', 'open', 
  'Jake Sully lives with his newfound family formed on the planet of Pandora. Once a familiar threat returns to finish what was previously started, Jake must work with Neytiri and the army of the Navi race to protect their planet.',
  'James Cameron', 'Sam Worthington, Zoe Saldana, Sigourney Weaver, Stephen Lang, Kate Winslet',
  'Action', 'https://example.com/avatar2.jpg'),
 
-('Fast X', 141, 'PG-13', '2023-05-19', 'open',
+('Fast X', 141, 'PG-13', '2025-05-22', 'open',
  'Dom Toretto and his family are targeted by the vengeful son of drug kingpin Hernan Reyes.',
  'Louis Leterrier', 'Vin Diesel, Michelle Rodriguez, Tyrese Gibson, Ludacris, John Cena',
  'Action', 'https://example.com/fastx.jpg'),
 
-('Spider-Man: Across the Spider-Verse', 140, 'PG', '2023-06-02', 'open',
+('Spider-Man: Across the Spider-Verse', 140, 'PG', '2025-05-22', 'open',
  'Miles Morales catapults across the Multiverse, where he encounters a team of Spider-People charged with protecting its very existence.',
  'Joaquim Dos Santos', 'Shameik Moore, Hailee Steinfeld, Brian Tyree Henry, Luna Lauren Velez',
  'Animation', 'https://example.com/spiderverse.jpg'),
 
-('The Batman', 176, 'PG-13', '2022-03-04', 'open',
+('The Batman', 176, 'PG-13', '2025-05-22', 'open',
  'When a sadistic serial killer begins murdering key political figures in Gotham, Batman is forced to investigate the citys hidden corruption.',
  'Matt Reeves', 'Robert Pattinson, Zoë Kravitz, Paul Dano, Jeffrey Wright, Colin Farrell',
  'Action', 'https://example.com/batman.jpg'),
 
-('Inception', 148, 'PG-13', '2010-07-16', 'open',
+('Inception', 148, 'PG-13', '2025-05-22', 'open',
  'A thief who steals corporate secrets through the use of dream-sharing technology is given the inverse task of planting an idea into the mind of a C.E.O.',
  'Christopher Nolan', 'Leonardo DiCaprio, Marion Cotillard, Tom Hardy, Elliot Page, Ken Watanabe',
  'Sci-Fi', 'https://example.com/inception.jpg'),
 
-('Dune: Part Two', 165, 'PG-13', '2024-03-01', 'open',
+('Dune: Part Two', 165, 'PG-13', '2025-05-22', 'open',
  'Paul Atreides unites with Chani and the Fremen while seeking revenge against the conspirators who destroyed his family.',
  'Denis Villeneuve', 'Timothée Chalamet, Zendaya, Rebecca Ferguson, Josh Brolin, Austin Butler',
  'Sci-Fi', 'https://example.com/dune2.jpg');
@@ -272,7 +266,7 @@ INSERT INTO showtimes (movie_id, screen_id, start_time, end_time) VALUES
 (4, 4, '2025-05-24 17:00:00', '2025-05-24 19:56:00'),
 (5, 5, '2025-05-24 14:30:00', '2025-05-24 16:58:00'),
 (5, 5, '2025-05-24 20:00:00', '2025-05-24 22:28:00'),
-(6, 1, '2025-05-24 22:00:00', '2025-05-25 00:45:00'),
+(6, 1, '2025-05-24 22:10:00', '2025-05-25 00:55:00'),
 
 -- May 25, 2025 (Sunday)
 (1, 3, '2025-05-25 11:00:00', '2025-05-25 14:12:00'),
@@ -305,7 +299,7 @@ INSERT INTO showtimes (movie_id, screen_id, start_time, end_time) VALUES
 (4, 4, '2025-05-26 17:00:00', '2025-05-26 19:56:00'),
 (5, 5, '2025-05-26 14:30:00', '2025-05-26 16:58:00'),
 (5, 5, '2025-05-26 20:00:00', '2025-05-26 22:28:00'),
-(6, 1, '2025-05-26 22:00:00', '2025-05-27 00:45:00'),
+(6, 1, '2025-05-26 22:10:00', '2025-05-27 00:55:00'),
 
 -- May 27, 2025 (Tuesday)
 (1, 3, '2025-05-27 11:00:00', '2025-05-27 14:12:00'),
