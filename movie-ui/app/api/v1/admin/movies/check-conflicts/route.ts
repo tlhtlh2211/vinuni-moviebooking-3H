@@ -24,11 +24,12 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error("Error checking conflicts:", error)
     if (error.response) {
+      // Pass through the complete error response from Flask
       return NextResponse.json(
-        { error: error.response.data.message || "Failed to check conflicts" },
+        error.response.data,
         { status: error.response.status },
       )
     }
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return NextResponse.json({ status: 'error', message: "Internal server error" }, { status: 500 })
   }
 }

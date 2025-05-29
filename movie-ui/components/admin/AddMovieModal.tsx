@@ -23,7 +23,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Checkbox } from '@/components/ui/checkbox'
 import { ScheduleGrid } from './ScheduleGrid'
 
 interface Cinema {
@@ -39,9 +38,14 @@ interface Screen {
   format: '2D' | '3D' | 'IMAX'
 }
 
+interface TimeSlot {
+  time: string
+  screen_id: string
+}
+
 interface ShowtimeEntry {
   date: string
-  times: string[]
+  timeSlots: TimeSlot[]
 }
 
 interface ShowtimeConflict {
@@ -80,10 +84,10 @@ export function AddMovieModal({ onSuccess }: AddMovieModalProps) {
   // Step 2: Showtime data
   const [cinemas, setCinemas] = useState<Cinema[]>([])
   const [selectedCinema, setSelectedCinema] = useState<string>('')
-  const [selectedScreens, setSelectedScreens] = useState<number[]>([])
   const [showtimeEntries, setShowtimeEntries] = useState<ShowtimeEntry[]>([
-    { date: '', times: [''] }
+    { date: '', timeSlots: [{ time: '', screen_id: '' }] }
   ])
+  const [activeEntryIndex, setActiveEntryIndex] = useState<number>(-1)
   
   // Fetch cinemas and screens when modal opens
   useEffect(() => {
@@ -121,7 +125,7 @@ export function AddMovieModal({ onSuccess }: AddMovieModalProps) {
     if (!validateStep1()) return
     
     // Check for conflicts if there are showtimes to validate
-    if (selectedScreens.length > 0 && showtimeEntries.some(e => e.date && e.times.length > 0)) {
+    if (showtimeEntries.some(e => e.date && e.timeSlots.some(ts => ts.time && ts.screen_id))) {
       await checkConflicts()
     }
     
@@ -131,16 +135,14 @@ export function AddMovieModal({ onSuccess }: AddMovieModalProps) {
   const checkConflicts = async () => {
     const showtimes = []
     
-    for (const screen_id of selectedScreens) {
-      for (const entry of showtimeEntries) {
-        if (entry.date) {
-          for (const time of entry.times) {
-            if (time) {
-              showtimes.push({
-                screen_id,
-                start_time: `${entry.date}T${time}:00`
-              })
-            }
+    for (const entry of showtimeEntries) {
+      if (entry.date) {
+        for (const slot of entry.timeSlots) {
+          if (slot.time && slot.screen_id) {
+            showtimes.push({
+              screen_id: parseInt(slot.screen_id),
+              start_time: `${entry.date}T${slot.time}:00`
+            })
           }
         }
       }
@@ -181,19 +183,17 @@ export function AddMovieModal({ onSuccess }: AddMovieModalProps) {
     }
     
     // Add showtimes if not skipping
-    if (!skipShowtimes && selectedScreens.length > 0) {
+    if (!skipShowtimes) {
       const showtimes = []
       
-      for (const screen_id of selectedScreens) {
-        for (const entry of showtimeEntries) {
-          if (entry.date) {
-            for (const time of entry.times) {
-              if (time) {
-                showtimes.push({
-                  screen_id,
-                  start_time: `${entry.date}T${time}:00`
-                })
-              }
+      for (const entry of showtimeEntries) {
+        if (entry.date) {
+          for (const slot of entry.timeSlots) {
+            if (slot.time && slot.screen_id) {
+              showtimes.push({
+                screen_id: parseInt(slot.screen_id),
+                start_time: `${entry.date}T${slot.time}:00`
+              })
             }
           }
         }
@@ -238,6 +238,7 @@ export function AddMovieModal({ onSuccess }: AddMovieModalProps) {
     setStep(1)
     setErrors({})
     setConflicts([])
+    setActiveEntryIndex(-1)
     setMovieData({
       title: '',
       duration: '',
@@ -251,35 +252,45 @@ export function AddMovieModal({ onSuccess }: AddMovieModalProps) {
       poster_url: '',
     })
     setSelectedCinema('')
-    setSelectedScreens([])
-    setShowtimeEntries([{ date: '', times: [''] }])
+    setShowtimeEntries([{ date: '', timeSlots: [{ time: '', screen_id: '' }] }])
+    setActiveEntryIndex(-1)
   }
   
   const addTimeSlot = (entryIndex: number) => {
     const newEntries = [...showtimeEntries]
-    newEntries[entryIndex].times.push('')
+    newEntries[entryIndex].timeSlots.push({ time: '', screen_id: '' })
     setShowtimeEntries(newEntries)
   }
   
-  const removeTimeSlot = (entryIndex: number, timeIndex: number) => {
+  const removeTimeSlot = (entryIndex: number, slotIndex: number) => {
     const newEntries = [...showtimeEntries]
-    newEntries[entryIndex].times.splice(timeIndex, 1)
+    newEntries[entryIndex].timeSlots.splice(slotIndex, 1)
     setShowtimeEntries(newEntries)
   }
   
   const addDateEntry = () => {
-    setShowtimeEntries([...showtimeEntries, { date: '', times: [''] }])
+    const newIndex = showtimeEntries.length
+    setShowtimeEntries([...showtimeEntries, { date: '', timeSlots: [{ time: '', screen_id: '' }] }])
+    setActiveEntryIndex(newIndex)
   }
   
   const removeDateEntry = (index: number) => {
     const newEntries = [...showtimeEntries]
     newEntries.splice(index, 1)
     setShowtimeEntries(newEntries)
+    // Adjust active index if needed
+    if (activeEntryIndex >= newEntries.length) {
+      setActiveEntryIndex(newEntries.length > 0 ? newEntries.length - 1 : -1)
+    } else if (activeEntryIndex > index) {
+      setActiveEntryIndex(activeEntryIndex - 1)
+    } else if (activeEntryIndex === index) {
+      setActiveEntryIndex(-1)
+    }
   }
   
-  const updateTime = (entryIndex: number, timeIndex: number, value: string) => {
+  const updateTimeSlot = (entryIndex: number, slotIndex: number, field: 'time' | 'screen_id', value: string) => {
     const newEntries = [...showtimeEntries]
-    newEntries[entryIndex].times[timeIndex] = value
+    newEntries[entryIndex].timeSlots[slotIndex][field] = value
     setShowtimeEntries(newEntries)
   }
   
@@ -454,42 +465,21 @@ export function AddMovieModal({ onSuccess }: AddMovieModalProps) {
               </Select>
             </div>
             
-            {currentCinema && (
-              <div className="space-y-2">
-                <Label>Select Screens</Label>
-                <div className="space-y-2">
-                  {currentCinema.screens.map((screen) => (
-                    <div key={screen.screen_id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`screen-${screen.screen_id}`}
-                        checked={selectedScreens.includes(screen.screen_id)}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            setSelectedScreens([...selectedScreens, screen.screen_id])
-                          } else {
-                            setSelectedScreens(selectedScreens.filter(id => id !== screen.screen_id))
-                          }
-                        }}
-                      />
-                      <Label htmlFor={`screen-${screen.screen_id}`} className="cursor-pointer">
-                        {screen.name} ({screen.format})
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            {/* Screen selection now happens per time slot */}
             
-            {selectedScreens.length > 0 && (
+            {currentCinema && (
               <div className="space-y-4">
                 <Label>Schedule Showtimes</Label>
                 
-                {/* Show visual schedule for the first selected date */}
-                {selectedCinema && showtimeEntries[0]?.date && (
+                {/* Show visual schedule for the active date */}
+                {selectedCinema && showtimeEntries[activeEntryIndex]?.date && (
                   <div className="mb-4">
+                    <div className="mb-2 text-sm text-gray-600">
+                      Preview for: <span className="font-medium">{showtimeEntries[activeEntryIndex].date}</span>
+                    </div>
                     <ScheduleGrid 
                       cinemaId={parseInt(selectedCinema)} 
-                      date={showtimeEntries[0].date}
+                      date={showtimeEntries[activeEntryIndex].date}
                     />
                   </div>
                 )}
@@ -505,7 +495,9 @@ export function AddMovieModal({ onSuccess }: AddMovieModalProps) {
                           const newEntries = [...showtimeEntries]
                           newEntries[entryIndex].date = e.target.value
                           setShowtimeEntries(newEntries)
+                          setActiveEntryIndex(entryIndex)
                         }}
+                        onFocus={() => setActiveEntryIndex(entryIndex)}
                         className="flex-1"
                       />
                       {showtimeEntries.length > 1 && (
@@ -522,21 +514,37 @@ export function AddMovieModal({ onSuccess }: AddMovieModalProps) {
                     
                     <div className="space-y-2">
                       <Label className="text-sm">Time Slots</Label>
-                      {entry.times.map((time, timeIndex) => (
-                        <div key={timeIndex} className="flex items-center gap-2">
+                      {entry.timeSlots.map((slot, slotIndex) => (
+                        <div key={slotIndex} className="flex items-center gap-2">
                           <Clock className="h-4 w-4" />
                           <Input
                             type="time"
-                            value={time}
-                            onChange={(e) => updateTime(entryIndex, timeIndex, e.target.value)}
+                            value={slot.time}
+                            onChange={(e) => updateTimeSlot(entryIndex, slotIndex, 'time', e.target.value)}
+                            onFocus={() => setActiveEntryIndex(entryIndex)}
                             className="flex-1"
                           />
-                          {entry.times.length > 1 && (
+                          <Select
+                            value={slot.screen_id}
+                            onValueChange={(value) => updateTimeSlot(entryIndex, slotIndex, 'screen_id', value)}
+                          >
+                            <SelectTrigger className="w-[180px]">
+                              <SelectValue placeholder="Select screen" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {currentCinema.screens.map((screen) => (
+                                <SelectItem key={screen.screen_id} value={screen.screen_id.toString()}>
+                                  {screen.name} ({screen.format})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {entry.timeSlots.length > 1 && (
                             <Button
                               type="button"
                               variant="ghost"
                               size="icon"
-                              onClick={() => removeTimeSlot(entryIndex, timeIndex)}
+                              onClick={() => removeTimeSlot(entryIndex, slotIndex)}
                             >
                               <X className="h-4 w-4" />
                             </Button>

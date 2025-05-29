@@ -175,7 +175,7 @@ BEGIN
           )
         LIMIT 1;
         
-        SET @error_msg = CONCAT('Schedule conflict with: ', IFNULL(conflict_movie, 'another movie'));
+        SET @error_msg = CONCAT('Schedule conflict with another movie');
         SIGNAL SQLSTATE '45000' 
         SET MESSAGE_TEXT = @error_msg;
     END IF;
@@ -227,7 +227,7 @@ BEGIN
               )
             LIMIT 1;
             
-            SET @error_msg = CONCAT('Schedule conflict with: ', IFNULL(conflict_movie, 'another movie'));
+            SET @error_msg = CONCAT('Schedule conflict with another movie');
             SIGNAL SQLSTATE '45000' 
             SET MESSAGE_TEXT = @error_msg;
         END IF;

@@ -4,7 +4,7 @@ from models import Movies, Showtimes, Screens, Cinemas
 from serializers import ModelSerializer
 from sqlalchemy import select, and_, or_, text
 from datetime import datetime, timedelta
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError, OperationalError
 
 movies_bp = Blueprint('admin_movies', __name__)
 
@@ -75,8 +75,9 @@ def create_movie():
                     if conflict:
                         return jsonify({
                             'status': 'error',
-                            'message': f'Showtime conflicts with existing booking on screen {screen_id}'
-                        }), 400
+                            'message': 'Schedule conflict with another movie',
+                            'type': 'schedule_conflict'
+                        }), 409
                     
                     # Create showtime
                     new_showtime = Showtimes(
@@ -104,18 +105,27 @@ def create_movie():
         
         return jsonify(response_data), 201
         
+    except OperationalError as e:
+        db.session.rollback()
+        error_msg = str(e.orig) if hasattr(e, 'orig') else str(e)
+        
+        # Handle trigger errors (SIGNAL SQLSTATE '45000')
+        if '1644' in str(e.orig.args[0]) if hasattr(e, 'orig') else False:
+            # Extract just the message from the trigger
+            trigger_message = e.orig.args[1] if hasattr(e, 'orig') and len(e.orig.args) > 1 else 'Schedule conflict with another movie'
+            return jsonify({
+                'status': 'error', 
+                'message': trigger_message,
+                'type': 'schedule_conflict'
+            }), 409  # 409 Conflict
+        else:
+            return jsonify({'status': 'error', 'message': 'Database operation error'}), 400
+            
     except IntegrityError as e:
         db.session.rollback()
         error_msg = str(e.orig) if hasattr(e, 'orig') else str(e)
         
-        # Handle trigger errors specifically
-        if 'Schedule conflict' in error_msg:
-            return jsonify({
-                'status': 'error', 
-                'message': error_msg,
-                'type': 'schedule_conflict'
-            }), 409  # 409 Conflict
-        elif 'Duplicate entry' in error_msg:
+        if 'Duplicate entry' in error_msg:
             return jsonify({'status': 'error', 'message': 'A movie with this title may already exist'}), 400
         else:
             return jsonify({'status': 'error', 'message': 'Database integrity error'}), 400
