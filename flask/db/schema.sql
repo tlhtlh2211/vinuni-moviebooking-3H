@@ -645,3 +645,66 @@ JOIN cinemas c ON c.cinema_id = sc.cinema_id
 JOIN movies m ON m.movie_id = s.movie_id
 WHERE s.start_time >= DATE_SUB(NOW(), INTERVAL 1 DAY)  -- Include recent past for context
 ORDER BY s.screen_id, s.start_time;
+
+-- 1. TIME-BASED QUERY INDEXES (Critical for finding active/upcoming content)
+-- ---------------------------------------------------------------------
+
+-- Showtimes: Finding active/upcoming shows
+CREATE INDEX idx_showtimes_start_time ON showtimes(start_time);
+CREATE INDEX idx_showtimes_end_time ON showtimes(end_time);
+
+-- Showtimes: Movie schedule queries (e.g., "all showtimes for movie X")
+CREATE INDEX idx_showtimes_movie_start ON showtimes(movie_id, start_time);
+
+-- Showtimes: Screen availability checks for scheduling
+CREATE INDEX idx_showtimes_screen_end ON showtimes(screen_id, end_time);
+
+-- Reservations: Time-based analytics and expiry management
+CREATE INDEX idx_reservations_created_at ON reservations(created_at);
+CREATE INDEX idx_reservations_expires_at ON reservations(expires_at);
+
+-- Seat locks: Cleanup of expired locks
+CREATE INDEX idx_seat_locks_expires_at ON seat_locks(expires_at);
+
+-- 2. ANALYTICS AND REPORTING INDEXES (For admin dashboards)
+-- ---------------------------------------------------------------------
+
+-- Tickets: Revenue analytics by time period  
+CREATE INDEX idx_tickets_issued_at ON tickets(issued_at);
+
+-- Movies: Auto-closing and date-based filtering
+CREATE INDEX idx_movies_scheduled_close_date ON movies(scheduled_close_date);
+CREATE INDEX idx_movies_release_date ON movies(release_date);
+
+-- Movies: Status filtering for active content
+CREATE INDEX idx_movies_status_release ON movies(status, release_date);
+
+-- 3. BOOKING FLOW OPTIMIZATION INDEXES
+-- ---------------------------------------------------------------------
+
+-- Reservations: User's booking history and active reservations
+CREATE INDEX idx_reservations_user_status ON reservations(user_id, status);
+
+-- Reservations: Showtime seat availability checks
+CREATE INDEX idx_reservations_showtime_status ON reservations(showtime_id, status);
+
+-- Reservations: General status filtering
+CREATE INDEX idx_reservations_status ON reservations(status);
+
+-- Tickets: Efficient seat availability verification
+CREATE INDEX idx_tickets_seat_reservation ON tickets(seat_id, reservation_id);
+
+-- Seat locks: Finding user's current locks
+CREATE INDEX idx_seat_locks_user_id ON seat_locks(user_id);
+
+-- 4. CONTENT FILTERING AND SEARCH INDEXES
+-- ---------------------------------------------------------------------
+
+-- Movies: Genre-based filtering
+CREATE INDEX idx_movies_genre ON movies(genre);
+
+-- Seats: Class-based queries and pricing
+CREATE INDEX idx_seats_seat_class ON seats(seat_class);
+
+-- Seats: Efficient seat layout queries
+CREATE INDEX idx_seats_screen_position ON seats(screen_id, row_num, col_num);
