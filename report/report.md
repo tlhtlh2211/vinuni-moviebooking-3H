@@ -611,22 +611,6 @@ Enhanced content discovery and seat selection:
   - Composite index for efficient seat grid rendering
   - Optimizes seat layout queries by screen and position
 
-**Performance Impact:**
-
-| Query Type | Before Indexes | After Indexes | Improvement |
-|------------|----------------|---------------|-------------|
-| Active Showtimes | 250ms | 2ms | 125x faster |
-| Revenue Analytics | 1,800ms | 35ms | 50x faster |
-| Seat Availability | 150ms | 3ms | 50x faster |
-| User Booking History | 500ms | 5ms | 100x faster |
-| Genre Filtering | 80ms | 1ms | 80x faster |
-
-**Index Maintenance Strategy:**
-- Regular `ANALYZE TABLE` operations to update statistics
-- Monitor index usage via `performance_schema`
-- Consider partitioning for tickets and reservations tables as data grows
-- Index effectiveness reviewed quarterly based on query patterns
-
 ## 7. Security Implementation
 
 ### 7.1 Password Encryption
