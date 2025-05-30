@@ -565,7 +565,6 @@ These indexes transform time-based queries from full table scans to efficient in
 
 - **idx_showtimes_start_time & idx_showtimes_end_time**
   - Accelerates finding active/upcoming shows: `WHERE end_time > NOW()`
-  - Performance gain: 100x faster for active showtime queries
   
 - **idx_showtimes_movie_start**
   - Composite index for "all showtimes for movie X" queries
@@ -581,7 +580,6 @@ Dashboard and reporting queries see dramatic improvements:
 
 - **idx_tickets_issued_at**
   - Revenue analytics by time period (daily/weekly/monthly)
-  - Reduces aggregation time from seconds to milliseconds
   
 - **idx_movies_status_release**
   - Composite index for filtering active movies by release date
@@ -593,7 +591,6 @@ Critical indexes ensuring smooth user experience during high-traffic booking per
 
 - **idx_reservations_user_status & idx_reservations_showtime_status**
   - User booking history: instant lookup vs scanning all reservations
-  - Seat availability checks: 50-80% query time reduction
   
 - **idx_tickets_seat_reservation**
   - Verifies seat availability without locking entire tables
